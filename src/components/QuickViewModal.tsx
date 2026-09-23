@@ -3,6 +3,16 @@ import type { Product } from '../types.js';
 import { useCart } from '../context/CartContext.js';
 import { useWishlist } from '../context/WishlistContext.js';
 import { useToast } from '../context/ToastContext.js';
+import {
+  IconX,
+  IconStar,
+  IconCheck,
+  IconCart,
+  IconHeart,
+  IconTruck,
+  IconShieldCheck,
+  IconRotateCcw
+} from './Icons.js';
 
 interface QuickViewModalProps {
   product: Product | null;
@@ -21,7 +31,7 @@ export const QuickViewModal: React.FC<QuickViewModalProps> = ({ product, onClose
 
   const handleAddToCart = () => {
     addToCart(product, quantity);
-    showToast(`🛒 Added ${quantity}x "${product.name.substring(0, 20)}..." to cart!`, 'success');
+    showToast(`Added ${quantity}x "${product.name.substring(0, 20)}..." to cart!`, 'success');
     onClose();
     openCart();
   };
@@ -30,9 +40,9 @@ export const QuickViewModal: React.FC<QuickViewModalProps> = ({ product, onClose
     e.stopPropagation();
     const added = toggleWishlist(product.id);
     if (added) {
-      showToast('❤️ Added to your Wishlist!', 'success');
+      showToast('Saved to your Wishlist!', 'success');
     } else {
-      showToast('🤍 Removed from Wishlist', 'info');
+      showToast('Removed from Wishlist', 'info');
     }
   };
 
@@ -44,13 +54,23 @@ export const QuickViewModal: React.FC<QuickViewModalProps> = ({ product, onClose
         aria-modal="true"
         onClick={(e) => e.stopPropagation()}
       >
-        <button className="close-modal-btn" id="close-modal-btn" aria-label="Close product preview" onClick={onClose}>
-          ✕
+        <button
+          className="close-modal-btn"
+          id="close-modal-btn"
+          aria-label="Close product preview"
+          onClick={onClose}
+        >
+          <IconX size={18} />
         </button>
+
         <div id="modal-product-body">
           <div className="modal-product-grid">
             <div className="modal-media">
-              <span className={`deal-badge ${product.badgeClass}`}>{product.discount}</span>
+              {product.discount && (
+                <span className={`deal-badge ${product.badgeClass}`}>
+                  {product.discount}
+                </span>
+              )}
               <img
                 src={product.image}
                 alt={product.name}
@@ -61,14 +81,21 @@ export const QuickViewModal: React.FC<QuickViewModalProps> = ({ product, onClose
                 }}
               />
             </div>
+
             <div className="modal-info">
               <div className="modal-header-meta">
                 <span className="cat-tag">{product.categoryName}</span>
                 <span className="tag-pill">{product.tag}</span>
               </div>
+
               <h2>{product.name}</h2>
+
               <div className="modal-rating">
-                <span className="stars">★★★★★</span>
+                <div className="stars-flex">
+                  {[...Array(5)].map((_, i) => (
+                    <IconStar key={i} size={14} filled={true} />
+                  ))}
+                </div>
                 <span className="score">{product.rating}</span>
                 <span className="rev-count">({product.reviews} verified customer reviews)</span>
               </div>
@@ -84,10 +111,13 @@ export const QuickViewModal: React.FC<QuickViewModalProps> = ({ product, onClose
               <p className="modal-desc">{product.description}</p>
 
               <div className="modal-features">
-                <h4>Key Features & Highlights:</h4>
+                <h4>Key Specifications & Highlights:</h4>
                 <ul>
                   {product.features.map((f, i) => (
-                    <li key={i}>✓ {f}</li>
+                    <li key={i}>
+                      <IconCheck size={14} className="feature-check-icon" />
+                      <span>{f}</span>
+                    </li>
                   ))}
                 </ul>
               </div>
@@ -104,21 +134,32 @@ export const QuickViewModal: React.FC<QuickViewModalProps> = ({ product, onClose
                     onChange={(e) => setQuantity(Math.max(1, parseInt(e.target.value) || 1))}
                   />
                 </div>
-                <button className="primary-button modal-add-btn" onClick={handleAddToCart}>
-                  Add to Cart 🛒
+                <button className="btn-primary-glow modal-add-btn" onClick={handleAddToCart}>
+                  <IconCart size={18} />
+                  <span>Add to Cart</span>
                 </button>
                 <button
                   className={`wishlist-btn-large ${isWishlisted ? 'active' : ''}`}
                   onClick={handleWishlistToggle}
                 >
-                  {isWishlisted ? '❤️ Saved' : '🤍 Wishlist'}
+                  <IconHeart size={18} filled={isWishlisted} />
+                  <span>{isWishlisted ? 'Saved' : 'Wishlist'}</span>
                 </button>
               </div>
 
               <div className="modal-guarantees">
-                <span>🚚 Free 2-Day Delivery over ₹499</span>
-                <span>🔒 30-Day Hassle-Free Returns</span>
-                <span>🛡️ 1-Year Official Warranty</span>
+                <span>
+                  <IconTruck size={14} className="text-blue" />
+                  Free 2-Day Delivery
+                </span>
+                <span>
+                  <IconRotateCcw size={14} className="text-amber" />
+                  30-Day Hassle-Free Returns
+                </span>
+                <span>
+                  <IconShieldCheck size={14} className="text-emerald" />
+                  Official Warranty
+                </span>
               </div>
             </div>
           </div>

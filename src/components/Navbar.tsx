@@ -4,6 +4,20 @@ import { useAuth } from '../context/AuthContext.js';
 import { useCart } from '../context/CartContext.js';
 import { useLocation } from '../context/LocationContext.js';
 import { useToast } from '../context/ToastContext.js';
+import {
+  IconCart,
+  IconSearch,
+  IconMapPin,
+  IconCrosshair,
+  IconUser,
+  IconPackage,
+  IconHeart,
+  IconHome,
+  IconLogOut,
+  IconTruck,
+  IconChevronDown,
+  IconSparkles
+} from './Icons.js';
 
 interface NavbarProps {
   currentCategory: Category;
@@ -34,7 +48,7 @@ export const Navbar: React.FC<NavbarProps> = ({
   const locationText = currentLocation.formatted || 'Detecting Location...';
   const userGreeting = currentUser
     ? `Hello, ${currentUser.name.split(' ')[0]}`
-    : 'Hello, sign in';
+    : 'Hello, Sign in';
 
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
@@ -70,7 +84,7 @@ export const Navbar: React.FC<NavbarProps> = ({
   };
 
   const categories: { id: Category; label: string }[] = [
-    { id: 'all', label: '☰ All Products' },
+    { id: 'all', label: 'All Catalog' },
     { id: 'electronics', label: 'Electronics' },
     { id: 'fashion', label: 'Fashion' },
     { id: 'home', label: 'Home & Kitchen' },
@@ -82,9 +96,13 @@ export const Navbar: React.FC<NavbarProps> = ({
     <div className="navbar-wrapper">
       {/* 1. Top Strip Announcement */}
       <div className="top-strip">
-        <p>
-          🚚 Free delivery on orders over ₹499 | Use code <strong>SUMMER20</strong> for 20% off
-        </p>
+        <div className="top-announcement">
+          <IconTruck size={14} className="top-truck-icon" />
+          <span>
+            Free express delivery on orders over ₹499 &bull; Use code{' '}
+            <strong>SUMMER20</strong> for 20% off
+          </span>
+        </div>
         <div className="top-links">
           <a
             href="javascript:void(0)"
@@ -98,15 +116,15 @@ export const Navbar: React.FC<NavbarProps> = ({
           </a>
           <a
             href="javascript:void(0)"
-            onClick={() => showToast('📞 Customer support is available 24/7 at support@shopcart.com', 'info')}
+            onClick={() => showToast('Customer support is available 24/7 at support@shopcart.com', 'info')}
           >
             Customer Service
           </a>
           <a
             href="javascript:void(0)"
-            onClick={() => showToast('💼 Merchant partner portal opening soon!', 'info')}
+            onClick={() => showToast('Merchant partner portal opening soon!', 'info')}
           >
-            Sell with us
+            Sell on ShopCart
           </a>
         </div>
       </div>
@@ -121,25 +139,31 @@ export const Navbar: React.FC<NavbarProps> = ({
             onNavigate('store');
           }}
         >
+          <span className="brand-logo-symbol">
+            <IconSparkles size={18} className="brand-sparkle" />
+          </span>
           <span className="brand-mark">shop</span>
-          <span className="brand-dot">.</span>
-          <small>Everything delivered</small>
+          <span className="brand-dot">cart</span>
+          <small>Curated Commerce</small>
         </a>
 
         {/* Deliver to widget - Auto Detect & Modal trigger */}
         <div
-          className={`location ${isDetecting ? 'detecting' : ''}`}
+          className={`location-pill ${isDetecting ? 'detecting' : ''}`}
           onClick={openLocationModal}
           title="Click to change or auto-detect delivery location"
-          style={{ cursor: 'pointer' }}
+          role="button"
+          tabIndex={0}
         >
-          <span className="location-icon">{isDetecting ? '⏳' : '⌖'}</span>
-          <span>
+          <div className="location-icon-wrap">
+            <IconMapPin size={17} className="location-pin" />
+          </div>
+          <div className="location-text-group">
             <small>Deliver to</small>
             <strong className="location-pill-text">
               {isDetecting ? 'Locating...' : locationText}
             </strong>
-          </span>
+          </div>
           <button
             className="quick-gps-btn"
             title="Auto-detect real GPS location"
@@ -147,58 +171,64 @@ export const Navbar: React.FC<NavbarProps> = ({
               e.stopPropagation();
               detectLocation();
             }}
+            aria-label="Detect GPS location"
           >
-            🎯
+            <IconCrosshair size={14} />
           </button>
         </div>
 
+        {/* Modern Search Bar */}
         <form className="search-bar" id="search-form" onSubmit={handleSearchSubmit}>
-          <select
-            id="header-category-select"
-            aria-label="Search category"
-            onChange={handleCategorySelectChange}
-            value={
-              currentCategory === 'electronics'
-                ? 'tech & electronics'
-                : currentCategory === 'fashion'
-                ? 'fashion & style'
-                : currentCategory === 'home'
-                ? 'home & living'
-                : currentCategory === 'beauty'
-                ? 'beauty & wellness'
-                : currentCategory === 'pets'
-                ? 'pet supplies'
-                : 'all'
-            }
-          >
-            <option value="all">All Categories</option>
-            <option value="tech & electronics">Electronics</option>
-            <option value="fashion & style">Fashion</option>
-            <option value="home & living">Home & Living</option>
-            <option value="beauty & wellness">Beauty</option>
-            <option value="pet supplies">Pet Supplies</option>
-          </select>
+          <div className="search-select-wrapper">
+            <select
+              id="header-category-select"
+              aria-label="Search category"
+              onChange={handleCategorySelectChange}
+              value={
+                currentCategory === 'electronics'
+                  ? 'tech & electronics'
+                  : currentCategory === 'fashion'
+                  ? 'fashion & style'
+                  : currentCategory === 'home'
+                  ? 'home & living'
+                  : currentCategory === 'beauty'
+                  ? 'beauty & wellness'
+                  : currentCategory === 'pets'
+                  ? 'pet supplies'
+                  : 'all'
+              }
+            >
+              <option value="all">All Departments</option>
+              <option value="tech & electronics">Electronics</option>
+              <option value="fashion & style">Fashion</option>
+              <option value="home & living">Home & Living</option>
+              <option value="beauty & wellness">Beauty</option>
+              <option value="pet supplies">Pet Supplies</option>
+            </select>
+            <IconChevronDown size={12} className="select-chevron" />
+          </div>
+
           <input
             type="search"
             id="search-input"
-            placeholder="Search products, brands, and categories..."
+            placeholder="Search premium electronics, apparel, homeware..."
             value={searchInput}
             onChange={(e) => {
               setSearchInput(e.target.value);
               onSearch(e.target.value.trim().toLowerCase());
             }}
           />
-          <button type="submit" aria-label="Search">
-            ⌕
+
+          <button type="submit" aria-label="Submit Search" className="search-submit-btn">
+            <IconSearch size={18} />
           </button>
         </form>
 
         <div className="header-actions">
           {/* User Account Menu with Dropdown */}
           <div className="account-menu-wrapper" ref={dropdownRef}>
-            <a
-              href="javascript:void(0)"
-              className="account"
+            <div
+              className="account-trigger"
               id="account-menu-btn"
               onClick={(e) => {
                 e.stopPropagation();
@@ -208,15 +238,25 @@ export const Navbar: React.FC<NavbarProps> = ({
                   openAuthModal('login');
                 }
               }}
+              role="button"
+              tabIndex={0}
             >
-              <small>{userGreeting}</small>
-              <strong>Account & Lists ▾</strong>
-            </a>
+              <div className="account-avatar-mini">
+                {currentUser ? currentUser.name.charAt(0).toUpperCase() : <IconUser size={16} />}
+              </div>
+              <div className="account-labels">
+                <small>{userGreeting}</small>
+                <div className="account-title-row">
+                  <strong>Account & Lists</strong>
+                  <IconChevronDown size={13} className="account-chevron" />
+                </div>
+              </div>
+            </div>
 
             {currentUser && isDropdownOpen && (
               <div className="account-dropdown active" id="account-dropdown-menu">
                 <div className="dropdown-user-header">
-                  <span className="dropdown-avatar">{currentUser.name.charAt(0)}</span>
+                  <span className="dropdown-avatar">{currentUser.name.charAt(0).toUpperCase()}</span>
                   <div>
                     <strong>{currentUser.name}</strong>
                     <small>{currentUser.email}</small>
@@ -231,7 +271,8 @@ export const Navbar: React.FC<NavbarProps> = ({
                   }}
                   className="dropdown-link"
                 >
-                  <span>👤</span> Your Profile
+                  <IconUser size={16} />
+                  <span>Your Profile</span>
                 </a>
                 <a
                   href="javascript:void(0)"
@@ -241,7 +282,8 @@ export const Navbar: React.FC<NavbarProps> = ({
                   }}
                   className="dropdown-link"
                 >
-                  <span>📦</span> Your Orders
+                  <IconPackage size={16} />
+                  <span>Your Orders</span>
                 </a>
                 <a
                   href="javascript:void(0)"
@@ -251,7 +293,8 @@ export const Navbar: React.FC<NavbarProps> = ({
                   }}
                   className="dropdown-link"
                 >
-                  <span>❤️</span> Saved Wishlist
+                  <IconHeart size={16} />
+                  <span>Saved Wishlist</span>
                 </a>
                 <a
                   href="javascript:void(0)"
@@ -261,7 +304,8 @@ export const Navbar: React.FC<NavbarProps> = ({
                   }}
                   className="dropdown-link"
                 >
-                  <span>🏠</span> Delivery Addresses
+                  <IconHome size={16} />
+                  <span>Delivery Addresses</span>
                 </a>
                 <div className="dropdown-divider"></div>
                 <a
@@ -269,20 +313,21 @@ export const Navbar: React.FC<NavbarProps> = ({
                   onClick={() => {
                     logout();
                     setIsDropdownOpen(false);
-                    showToast('👋 You have been logged out.', 'info');
+                    showToast('You have been safely signed out.', 'info');
                     if (currentView === 'account') onNavigate('store');
                   }}
                   className="dropdown-link text-danger"
                 >
-                  <span>🚪</span> Sign Out
+                  <IconLogOut size={16} />
+                  <span>Sign Out</span>
                 </a>
               </div>
             )}
           </div>
 
-          <a
-            href="javascript:void(0)"
-            className="orders"
+          {/* Quick Orders Link */}
+          <div
+            className="orders-action"
             onClick={() => {
               if (currentUser) {
                 onNavigate('account', 'orders');
@@ -290,47 +335,61 @@ export const Navbar: React.FC<NavbarProps> = ({
                 openAuthModal('login');
               }
             }}
+            role="button"
+            tabIndex={0}
           >
             <small>Returns</small>
             <strong>& Orders</strong>
-          </a>
+          </div>
 
-          <a
-            href="javascript:void(0)"
-            className="cart"
+          {/* Cart Button with Count Badge */}
+          <button
+            className="cart-action-btn"
             id="cart-button"
             onClick={(e) => {
               e.preventDefault();
               openCart();
             }}
+            aria-label={`Shopping Cart with ${summary.totalCount} items`}
           >
-            <span className="cart-count">{summary.totalCount}</span>
-            <span className="cart-icon">🛒</span>
-            <strong>Cart</strong>
-          </a>
+            <div className="cart-icon-container">
+              <IconCart size={22} className="cart-icon" />
+              {summary.totalCount > 0 && (
+                <span className="cart-count-badge">{summary.totalCount}</span>
+              )}
+            </div>
+            <div className="cart-text-group">
+              <small>Total</small>
+              <strong>₹{summary.total.toLocaleString('en-IN')}</strong>
+            </div>
+          </button>
         </div>
       </header>
 
       {/* 3. Category Sub-Navigation */}
       {currentView === 'store' && (
-        <nav className="category-nav">
-          {categories.map((cat) => (
-            <a
-              key={cat.id}
-              href="javascript:void(0)"
-              className={`${cat.id === 'all' ? 'menu-link' : ''} ${
-                currentCategory === cat.id ? 'active-nav-link' : ''
-              }`}
-              onClick={() => {
-                onSelectCategory(cat.id);
-                const catalogEl = document.getElementById('product-catalog-section');
-                catalogEl?.scrollIntoView({ behavior: 'smooth' });
-              }}
-            >
-              {cat.label}
-            </a>
-          ))}
-          <span className="nav-promo">Summer savings are here ☀️</span>
+        <nav className="category-nav" aria-label="Category Navigation">
+          <div className="category-nav-links">
+            {categories.map((cat) => (
+              <button
+                key={cat.id}
+                className={`category-nav-item ${
+                  currentCategory === cat.id ? 'active-nav-link' : ''
+                }`}
+                onClick={() => {
+                  onSelectCategory(cat.id);
+                  const catalogEl = document.getElementById('product-catalog-section');
+                  catalogEl?.scrollIntoView({ behavior: 'smooth' });
+                }}
+              >
+                {cat.label}
+              </button>
+            ))}
+          </div>
+          <span className="nav-promo-pill">
+            <IconSparkles size={13} className="text-amber" />
+            <span>Summer Savings: Up to 45% Off Selected Items</span>
+          </span>
         </nav>
       )}
     </div>

@@ -1,6 +1,7 @@
 import React, { useState, useMemo } from 'react';
 import type { Product, Category, SortOption } from '../types.js';
 import { ProductCard } from './ProductCard.js';
+import { IconSearch, IconSliders } from './Icons.js';
 
 interface ProductCatalogProps {
   products: readonly Product[];
@@ -43,48 +44,56 @@ export const ProductCatalog: React.FC<ProductCatalogProps> = ({
       });
   }, [products, currentCategory, searchQuery, currentSort]);
 
-  const categories: { id: Category; label: string }[] = [
+  const categories: { id: Category; label: string; count?: number }[] = [
     { id: 'all', label: 'All Items' },
-    { id: 'electronics', label: '💻 Electronics' },
-    { id: 'fashion', label: '👗 Fashion & Style' },
-    { id: 'beauty', label: '🧴 Beauty & Health' },
-    { id: 'home', label: '🏠 Home & Kitchen' },
-    { id: 'pets', label: '🐾 Pet Supplies' }
+    { id: 'electronics', label: 'Electronics' },
+    { id: 'fashion', label: 'Fashion & Style' },
+    { id: 'home', label: 'Home & Kitchen' },
+    { id: 'beauty', label: 'Beauty & Wellness' },
+    { id: 'pets', label: 'Pet Supplies' }
   ];
 
   return (
     <section className="section-block" id="product-catalog-section">
       <div className="section-heading">
-        <div>
+        <div className="heading-text-group">
           <p className="eyebrow">EXPLORE STORE CATALOG</p>
-          <h2>Featured Products & Deals</h2>
+          <h2 className="section-title">Featured Products & Deals</h2>
         </div>
+
         <div className="catalog-controls">
           <span className="items-counter" id="products-count-badge">
+            <span className="counter-dot"></span>
             {filteredProducts.length} items found
           </span>
-          <select
-            id="catalog-sort"
-            className="sort-select"
-            aria-label="Sort products"
-            value={currentSort}
-            onChange={(e) => setCurrentSort(e.target.value as SortOption)}
-          >
-            <option value="featured">Featured</option>
-            <option value="discount">Biggest Discount</option>
-            <option value="price-low">Price: Low to High</option>
-            <option value="price-high">Price: High to Low</option>
-            <option value="rating">Highest Rated</option>
-          </select>
+
+          <div className="sort-wrapper">
+            <IconSliders size={15} className="sort-icon-left" />
+            <select
+              id="catalog-sort"
+              className="sort-select"
+              aria-label="Sort products"
+              value={currentSort}
+              onChange={(e) => setCurrentSort(e.target.value as SortOption)}
+            >
+              <option value="featured">Featured First</option>
+              <option value="discount">Biggest Discount</option>
+              <option value="price-low">Price: Low to High</option>
+              <option value="price-high">Price: High to Low</option>
+              <option value="rating">Highest Customer Rating</option>
+            </select>
+          </div>
         </div>
       </div>
 
       {/* Filter Tabs / Pills */}
       <div className="filter-bar-container">
-        <div className="filter-pills">
+        <div className="filter-pills" role="tablist" aria-label="Product categories">
           {categories.map((c) => (
             <button
               key={c.id}
+              role="tab"
+              aria-selected={currentCategory === c.id}
               className={`filter-pill ${currentCategory === c.id ? 'active' : ''}`}
               onClick={() => onSelectCategory(c.id)}
             >
@@ -98,11 +107,22 @@ export const ProductCatalog: React.FC<ProductCatalogProps> = ({
       <div className="product-grid" id="dynamic-product-grid">
         {filteredProducts.length === 0 ? (
           <div className="empty-state">
-            <div className="empty-icon">🔍</div>
+            <div className="empty-icon-wrap">
+              <IconSearch size={36} className="empty-icon-svg" />
+            </div>
             <h3>No products found</h3>
-            <p>Try searching for different keywords or select another category.</p>
-            <button className="primary-button reset-btn" onClick={() => onSelectCategory('all')}>
-              View All Products
+            <p>
+              {searchQuery
+                ? `We couldn't find any results matching "${searchQuery}".`
+                : 'No products available in this category right now.'}
+            </p>
+            <button
+              className="btn-primary-glow reset-btn"
+              onClick={() => {
+                onSelectCategory('all');
+              }}
+            >
+              Clear Filters & View All
             </button>
           </div>
         ) : (

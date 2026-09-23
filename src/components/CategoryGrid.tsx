@@ -1,5 +1,14 @@
 import React from 'react';
 import type { Category } from '../types.js';
+import {
+  IconLaptop,
+  IconShirt,
+  IconHome,
+  IconSparkleBeauty,
+  IconGamepad,
+  IconPaw,
+  IconArrowRight
+} from './Icons.js';
 
 interface CategoryGridProps {
   onSelectCategory: (category: Category) => void;
@@ -12,84 +21,99 @@ export const CategoryGrid: React.FC<CategoryGridProps> = ({ onSelectCategory }) 
     catalogEl?.scrollIntoView({ behavior: 'smooth' });
   };
 
+  const categories = [
+    {
+      id: 'electronics' as Category,
+      title: 'Tech & Electronics',
+      subtitle: 'Audio, Wearables & Optics',
+      count: '6 Items',
+      icon: <IconLaptop size={28} />,
+      themeClass: 'cat-theme-blue'
+    },
+    {
+      id: 'fashion' as Category,
+      title: 'Fashion & Style',
+      subtitle: 'Apparel, Shoes & Watches',
+      count: '5 Items',
+      icon: <IconShirt size={28} />,
+      themeClass: 'cat-theme-rose'
+    },
+    {
+      id: 'home' as Category,
+      title: 'Home & Living',
+      subtitle: 'Kitchen, Decor & Organization',
+      count: '5 Items',
+      icon: <IconHome size={28} />,
+      themeClass: 'cat-theme-amber'
+    },
+    {
+      id: 'beauty' as Category,
+      title: 'Beauty & Wellness',
+      subtitle: 'Skincare & Personal Care',
+      count: '4 Items',
+      icon: <IconSparkleBeauty size={28} />,
+      themeClass: 'cat-theme-emerald'
+    },
+    {
+      id: 'electronics' as Category,
+      title: 'Gaming & Audio',
+      subtitle: 'Controllers & Studio Gear',
+      count: '4 Items',
+      icon: <IconGamepad size={28} />,
+      themeClass: 'cat-theme-indigo'
+    },
+    {
+      id: 'pets' as Category,
+      title: 'Pet Supplies',
+      subtitle: 'Beds, Toys & Feeding',
+      count: '4 Items',
+      icon: <IconPaw size={28} />,
+      themeClass: 'cat-theme-orange'
+    }
+  ];
+
   return (
-    <section className="section-block">
+    <section className="section-block" aria-label="Curated Categories">
       <div className="section-heading">
-        <div>
+        <div className="heading-text-group">
           <p className="eyebrow">CURATED FOR YOU</p>
-          <h2>Shop by category</h2>
+          <h2 className="section-title">Shop by Category</h2>
         </div>
-        <a href="javascript:void(0)" onClick={() => handleCategoryClick('all')}>
-          See all products →
-        </a>
+        <button
+          className="section-link-btn"
+          onClick={() => handleCategoryClick('all')}
+        >
+          <span>See all products</span>
+          <IconArrowRight size={15} />
+        </button>
       </div>
+
       <div className="category-grid">
-        <a
-          href="javascript:void(0)"
-          className="category-card category-blue"
-          onClick={() => handleCategoryClick('electronics')}
-        >
-          <span className="category-emoji">💻</span>
-          <div>
-            <strong>Tech & electronics</strong>
-            <small>Explore devices</small>
+        {categories.map((cat, idx) => (
+          <div
+            key={idx}
+            className={`category-card-modern ${cat.themeClass}`}
+            onClick={() => handleCategoryClick(cat.id)}
+            role="button"
+            tabIndex={0}
+            onKeyDown={(e) => {
+              if (e.key === 'Enter' || e.key === ' ') {
+                handleCategoryClick(cat.id);
+              }
+            }}
+          >
+            <div className="cat-icon-bubble">{cat.icon}</div>
+            <div className="cat-card-body">
+              <span className="cat-count-badge">{cat.count}</span>
+              <strong className="cat-title">{cat.title}</strong>
+              <small className="cat-desc">{cat.subtitle}</small>
+            </div>
+            <div className="cat-card-action">
+              <span className="cat-explore-text">Explore</span>
+              <IconArrowRight size={14} className="cat-arrow" />
+            </div>
           </div>
-        </a>
-        <a
-          href="javascript:void(0)"
-          className="category-card category-pink"
-          onClick={() => handleCategoryClick('fashion')}
-        >
-          <span className="category-emoji">👟</span>
-          <div>
-            <strong>Fashion & style</strong>
-            <small>Find your look</small>
-          </div>
-        </a>
-        <a
-          href="javascript:void(0)"
-          className="category-card category-yellow"
-          onClick={() => handleCategoryClick('home')}
-        >
-          <span className="category-emoji">🏠</span>
-          <div>
-            <strong>Home & living</strong>
-            <small>Make it yours</small>
-          </div>
-        </a>
-        <a
-          href="javascript:void(0)"
-          className="category-card category-green"
-          onClick={() => handleCategoryClick('beauty')}
-        >
-          <span className="category-emoji">🧴</span>
-          <div>
-            <strong>Beauty & wellness</strong>
-            <small>Feel your best</small>
-          </div>
-        </a>
-        <a
-          href="javascript:void(0)"
-          className="category-card category-lilac"
-          onClick={() => handleCategoryClick('electronics')}
-        >
-          <span className="category-emoji">🎮</span>
-          <div>
-            <strong>Gaming & Audio</strong>
-            <small>Level up</small>
-          </div>
-        </a>
-        <a
-          href="javascript:void(0)"
-          className="category-card category-orange"
-          onClick={() => handleCategoryClick('pets')}
-        >
-          <span className="category-emoji">🐾</span>
-          <div>
-            <strong>Pet supplies</strong>
-            <small>For your best friend</small>
-          </div>
-        </a>
+        ))}
       </div>
     </section>
   );

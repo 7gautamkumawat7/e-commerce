@@ -3,6 +3,7 @@ import type { Product } from '../types.js';
 import { useCart } from '../context/CartContext.js';
 import { useWishlist } from '../context/WishlistContext.js';
 import { useToast } from '../context/ToastContext.js';
+import { IconCart, IconHeart, IconEye, IconStar } from './Icons.js';
 
 interface ProductCardProps {
   product: Product;
@@ -18,7 +19,7 @@ export const ProductCard: React.FC<ProductCardProps> = ({ product, onOpenQuickVi
 
   const handleAddToCart = () => {
     addToCart(product, 1);
-    showToast(`🛒 Added "${product.name.substring(0, 24)}..." to cart!`, 'success');
+    showToast(`Added "${product.name.substring(0, 24)}..." to cart!`, 'success');
 
     const cartBtn = document.getElementById('cart-button');
     if (cartBtn) {
@@ -31,24 +32,33 @@ export const ProductCard: React.FC<ProductCardProps> = ({ product, onOpenQuickVi
     e.stopPropagation();
     const added = toggleWishlist(product.id);
     if (added) {
-      showToast('❤️ Added to your Wishlist!', 'success');
+      showToast('Saved to your Wishlist!', 'success');
     } else {
-      showToast('🤍 Removed from Wishlist', 'info');
+      showToast('Removed from Wishlist', 'info');
     }
   };
 
   return (
     <article className="product-card dynamic-card" data-id={product.id}>
       <div className="product-image-wrap">
-        <span className={`deal-badge ${product.badgeClass}`}>{product.discount}</span>
+        {/* Deal Badge */}
+        {product.discount && (
+          <span className={`deal-badge ${product.badgeClass}`}>
+            {product.discount}
+          </span>
+        )}
+
+        {/* Wishlist Button with SVG Icon */}
         <button
           className={`wishlist-btn ${isWishlisted ? 'active' : ''}`}
           onClick={handleWishlistToggle}
-          aria-label="Add to wishlist"
-          title="Save to wishlist"
+          aria-label={isWishlisted ? 'Remove from wishlist' : 'Save to wishlist'}
+          title={isWishlisted ? 'In Wishlist' : 'Add to Wishlist'}
         >
-          {isWishlisted ? '❤️' : '🤍'}
+          <IconHeart size={18} filled={isWishlisted} />
         </button>
+
+        {/* High-Res Product Image */}
         <img
           src={product.image}
           alt={product.name}
@@ -59,9 +69,16 @@ export const ProductCard: React.FC<ProductCardProps> = ({ product, onOpenQuickVi
             target.src = 'ECOMMERCE_PRODUCT_IMAGES/train/ELECTRONICS/3361_ELECTR_train.jpeg';
           }}
         />
+
+        {/* Glassmorphic Quick View Overlay */}
         <div className="quick-overlay">
-          <button className="quick-view-btn" onClick={() => onOpenQuickView(product)}>
-            Quick View 👁️
+          <button
+            className="quick-view-btn"
+            onClick={() => onOpenQuickView(product)}
+            aria-label={`Quick view ${product.name}`}
+          >
+            <IconEye size={16} />
+            <span>Quick View</span>
           </button>
         </div>
       </div>
@@ -69,10 +86,13 @@ export const ProductCard: React.FC<ProductCardProps> = ({ product, onOpenQuickVi
       <div className="product-info">
         <div className="meta-row">
           <span className="cat-tag">{product.categoryName}</span>
-          <span className="rating">
-            ★ {product.rating} <small>({product.reviews})</small>
-          </span>
+          <div className="rating-pill">
+            <IconStar size={13} filled={true} />
+            <span className="rating-val">{product.rating}</span>
+            <span className="review-val">({product.reviews})</span>
+          </div>
         </div>
+
         <h3
           className="product-title"
           onClick={() => onOpenQuickView(product)}
@@ -93,8 +113,13 @@ export const ProductCard: React.FC<ProductCardProps> = ({ product, onOpenQuickVi
           <span className="stock-pill">In Stock</span>
         </div>
 
-        <button className="add-to-cart-btn" onClick={handleAddToCart}>
-          <span>🛒</span> Add to Cart
+        <button
+          className="add-to-cart-btn"
+          onClick={handleAddToCart}
+          aria-label={`Add ${product.name} to cart`}
+        >
+          <IconCart size={17} />
+          <span>Add to Cart</span>
         </button>
       </div>
     </article>

@@ -4,6 +4,14 @@ import { useCart } from '../context/CartContext.js';
 import { useAuth } from '../context/AuthContext.js';
 import { useToast } from '../context/ToastContext.js';
 import { RazorpayModal } from './RazorpayModal.js';
+import {
+  IconCart,
+  IconX,
+  IconSparkles,
+  IconTrash,
+  IconLock,
+  IconArrowRight
+} from './Icons.js';
 
 interface CartDrawerProps {
   onNavigate: (view: 'store' | 'account', tab?: 'profile' | 'orders') => void;
@@ -33,7 +41,7 @@ export const CartDrawer: React.FC<CartDrawerProps> = ({ onNavigate }) => {
     );
 
     if (res.success) {
-      showToast(`🎉 Payment Authorized (${result.razorpay_payment_id})! ${res.message}`, 'success');
+      showToast(`Payment Authorized (${result.razorpay_payment_id})! ${res.message}`, 'success');
       if (currentUser) {
         setTimeout(() => {
           onNavigate('account', 'orders');
@@ -58,18 +66,29 @@ export const CartDrawer: React.FC<CartDrawerProps> = ({ onNavigate }) => {
       <div className="cart-overlay open" id="cart-overlay" onClick={closeCart}></div>
       <aside className="cart-drawer open" id="cart-drawer" aria-label="Shopping Cart">
         <div className="cart-header">
-          <h3>
-            Your Shopping Cart 🛒 <small>({summary.totalCount})</small>
-          </h3>
-          <button className="close-drawer-btn" id="close-cart-btn" aria-label="Close cart" onClick={closeCart}>
-            ✕
+          <div className="cart-title-wrap">
+            <IconCart size={20} className="cart-header-icon" />
+            <h3>
+              Shopping Bag <small>({summary.totalCount})</small>
+            </h3>
+          </div>
+          <button
+            className="close-drawer-btn"
+            id="close-cart-btn"
+            aria-label="Close cart"
+            onClick={closeCart}
+          >
+            <IconX size={18} />
           </button>
         </div>
 
         <div className="free-shipping-tracker">
           <div id="free-shipping-note">
             {summary.subtotal >= 499 ? (
-              <span>✨ <strong>Free Delivery unlocked!</strong></span>
+              <span className="free-shipping-success">
+                <IconSparkles size={14} className="text-amber" />
+                <strong>Free Express Delivery unlocked!</strong>
+              </span>
             ) : (
               <span>
                 Add <strong>₹{summary.freeShippingRemaining.toLocaleString('en-IN')}</strong> more for <strong>Free Delivery</strong>
@@ -77,24 +96,31 @@ export const CartDrawer: React.FC<CartDrawerProps> = ({ onNavigate }) => {
             )}
           </div>
           <div className="tracker-bar">
-            <div className="tracker-fill" id="free-shipping-progress" style={{ width: `${summary.freeShippingProgress}%` }}></div>
+            <div
+              className="tracker-fill"
+              id="free-shipping-progress"
+              style={{ width: `${summary.freeShippingProgress}%` }}
+            ></div>
           </div>
         </div>
 
         <div className="cart-items-container" id="cart-items-list">
           {cart.length === 0 ? (
             <div className="empty-cart-view">
-              <div className="empty-cart-icon">🛒</div>
+              <div className="empty-cart-icon-wrap">
+                <IconCart size={40} className="empty-cart-svg" />
+              </div>
               <h4>Your Cart is Empty</h4>
-              <p>Explore our trending catalog and add items you love!</p>
+              <p>Explore our trending catalog and discover items crafted for you.</p>
               <button
-                className="primary-button"
+                className="btn-primary-glow start-shopping-btn"
                 onClick={() => {
                   closeCart();
                   onNavigate('store');
                 }}
               >
-                Start Shopping →
+                <span>Start Shopping</span>
+                <IconArrowRight size={16} />
               </button>
             </div>
           ) : (
@@ -113,22 +139,31 @@ export const CartDrawer: React.FC<CartDrawerProps> = ({ onNavigate }) => {
                   <h4 className="cart-item-name">{item.name}</h4>
                   <span className="cart-item-price">₹{item.price.toLocaleString('en-IN')}</span>
                   <div className="cart-qty-controls">
-                    <button className="qty-btn" onClick={() => updateQuantity(item.id, -1)}>
+                    <button
+                      className="qty-btn"
+                      onClick={() => updateQuantity(item.id, -1)}
+                      aria-label="Decrease quantity"
+                    >
                       -
                     </button>
                     <span className="qty-val">{item.quantity}</span>
-                    <button className="qty-btn" onClick={() => updateQuantity(item.id, 1)}>
+                    <button
+                      className="qty-btn"
+                      onClick={() => updateQuantity(item.id, 1)}
+                      aria-label="Increase quantity"
+                    >
                       +
                     </button>
                     <button
                       className="remove-btn"
                       onClick={() => {
                         removeFromCart(item.id);
-                        showToast('🗑️ Item removed from cart', 'info');
+                        showToast('Item removed from cart', 'info');
                       }}
                       title="Remove item"
+                      aria-label="Remove item"
                     >
-                      🗑️
+                      <IconTrash size={15} />
                     </button>
                   </div>
                 </div>
@@ -166,11 +201,13 @@ export const CartDrawer: React.FC<CartDrawerProps> = ({ onNavigate }) => {
               </div>
             )}
             <div className="summary-line total-line">
-              <span>Total</span>
+              <span>Total Amount</span>
               <span id="cart-total">₹{summary.total.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
             </div>
             <button className="checkout-btn razorpay-btn" onClick={handleProceedToPayment}>
-              <span>🔒 Proceed to Payment (Razorpay Live) →</span>
+              <IconLock size={16} />
+              <span>Checkout via Razorpay Live</span>
+              <IconArrowRight size={16} />
             </button>
           </div>
         )}
