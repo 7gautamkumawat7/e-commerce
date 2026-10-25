@@ -2,11 +2,36 @@ export type Category = 'all' | 'electronics' | 'fashion' | 'home' | 'beauty' | '
 
 export type SortOption = 'featured' | 'discount' | 'price-low' | 'price-high' | 'rating';
 
-export type ViewType = 'store' | 'account';
+export type ViewType = 'home' | 'shop' | 'deals' | 'top-rated' | 'product-detail' | 'account' | 'store';
 
 export type AccountTab = 'profile' | 'orders' | 'wishlist' | 'addresses' | 'security';
 
-export type AuthMode = 'login' | 'signup';
+export type AuthMode = 'login' | 'signup' | 'otp';
+
+export interface Review {
+  id: string;
+  productId: string;
+  userName: string;
+  userAvatar?: string;
+  rating: number;
+  title: string;
+  comment: string;
+  date: string;
+  verifiedPurchase: boolean;
+  helpfulCount: number;
+}
+
+export interface ProductFilterState {
+  category: Category;
+  minPrice: number;
+  maxPrice: number;
+  minRating: number;
+  minDiscount: number;
+  inStockOnly: boolean;
+  selectedTag: string;
+  searchQuery: string;
+  sort: SortOption;
+}
 
 export interface Product {
   id: string;
@@ -23,6 +48,11 @@ export interface Product {
   badgeClass: string;
   description: string;
   features: string[];
+  inStock?: boolean;
+  galleryImages?: string[];
+  colors?: string[];
+  sizes?: string[];
+  specifications?: Record<string, string>;
 }
 
 export interface CartItem {
@@ -51,9 +81,11 @@ export interface User {
   password?: string;
   phone?: string;
   avatar?: string;
-  memberTier?: 'Member' | 'Gold VIP' | 'Platinum';
+  memberTier?: 'Member' | 'Gold VIP' | 'Platinum' | string;
+  isVerified?: boolean;
   joinedDate: string;
   addresses: Address[];
+  loginHistory?: any[];
 }
 
 export interface OrderItem {

@@ -1,186 +1,229 @@
 import type { User, Address } from '../types.js';
-
-const USERS_STORAGE_KEY = 'shopcart_users_db';
-const CURRENT_USER_STORAGE_KEY = 'shopcart_current_user_id';
-
-const DEFAULT_DEMO_USER: User = {
-  id: 'usr_demo_101',
-  name: 'Alex Johnson',
-  email: 'demo@shopcart.com',
-  password: 'password123',
-  phone: '+91 98765 43210',
-  avatar: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=256&q=80',
-  memberTier: 'Gold VIP',
-  joinedDate: 'January 2024',
-  addresses: [
-    {
-      id: 'addr_1',
-      title: 'Home',
-      street: 'Flat 402, Lotus Heights, Bandra West',
-      city: 'Mumbai',
-      state: 'MH',
-      zipCode: '400050',
-      country: 'India',
-      isDefault: true
-    },
-    {
-      id: 'addr_2',
-      title: 'Work / Tech Park',
-      street: 'Tower 4, Floor 7, Manyata Tech Park',
-      city: 'Bengaluru',
-      state: 'KA',
-      zipCode: '560045',
-      country: 'India',
-      isDefault: false
-    }
-  ]
-};
+import { authApi } from './api.js';
 
 type AuthListener = (user: User | null) => void;
 const listeners: Set<AuthListener> = new Set();
+let inMemoryUser: User | null = null;
+let isInitialized = false;
 
-function getUsersDB(): User[] {
-  try {
-    const raw = localStorage.getItem(USERS_STORAGE_KEY);
-    if (!raw) {
-      const initial = [DEFAULT_DEMO_USER];
-      localStorage.setItem(USERS_STORAGE_KEY, JSON.stringify(initial));
-      return initial;
-    }
-    return JSON.parse(raw) as User[];
-  } catch {
-    return [DEFAULT_DEMO_USER];
-  }
+function notifyAuthChange(user: User | null): void {
+  inMemoryUser = user;
+  listeners.forEach((fn) => fn(user));
 }
 
-function saveUsersDB(users: User[]): void {
+function mapApiUserToFrontendUser(data: any): User {
+  return {
+    id: data.id,
+    name: data.name,
+    email: data.email,
+    phone: data.phone || '',
+    avatar: data.avatar || `https://api.dicebear.com/7.x/initials/svg?seed=${encodeURIComponent(data.name || 'User')}`,
+    memberTier: data.memberTier || data.member_tier || 'Member',
+    isVerified: Boolean(data.isVerified),
+    joinedDate: data.createdAt ? new Date(data.createdAt).toLocaleDateString('en-US', { month: 'short', year: 'numeric' }) : 'Recently',
+    addresses: (data.addresses || []).map((addr: any) => ({
+      id: addr.id,
+      title: addr.title || 'Address',
+      street: addr.street || '',
+      city: addr.city || '',
+      state: addr.state || '',
+      zipCode: addr.zipCode || addr.zip_code || '',
+      country: addr.country || 'India',
+      isDefault: Boolean(addr.isDefault ?? addr.is_default)
+    })),
+    loginHistory: data.loginHistory || []
+  };
+}
+
+/**
+ * Initializes and synchronizes current user session with backend /api/auth/me via HTTP-only JWT cookies.
+ * Does NOT set any mock dummy user.
+ */
+export async function initAuth(): Promise<User | null> {
+  if (isInitialized) return inMemoryUser;
+
   try {
-    localStorage.setItem(USERS_STORAGE_KEY, JSON.stringify(users));
-  } catch (err) {
-    console.error('Failed to save users database:', err);
+    const data: any = await authApi.getMe();
+    if (data && data.id) {
+      const user = mapApiUserToFrontendUser(data);
+      notifyAuthChange(user);
+      isInitialized = true;
+      return user;
+    }
+  } catch {
+    // Unauthenticated: clean state with null user
   }
+
+  isInitialized = true;
+  notifyAuthChange(null);
+  return null;
 }
 
 export function getCurrentUser(): User | null {
-  try {
-    const currentUserId = localStorage.getItem(CURRENT_USER_STORAGE_KEY);
-    if (!currentUserId) return null;
-    const users = getUsersDB();
-    return users.find(u => u.id === currentUserId) || null;
-  } catch {
-    return null;
-  }
+  return inMemoryUser;
 }
 
 export function subscribeAuth(listener: AuthListener): () => void {
   listeners.add(listener);
-  listener(getCurrentUser());
+  listener(inMemoryUser);
+  if (!isInitialized) {
+    initAuth();
+  }
   return () => listeners.delete(listener);
 }
 
-function notifyAuthChange(user: User | null): void {
-  listeners.forEach(fn => fn(user));
+export async function login(
+  email: string,
+  password?: string
+): Promise<{ success: boolean; message: string; user?: User }> {
+  try {
+    if (!password) {
+      return { success: false, message: 'Password is required to sign in.' };
+    }
+    const result: any = await authApi.login({ email, password });
+    const user = mapApiUserToFrontendUser(result.user);
+    notifyAuthChange(user);
+    return { success: true, message: `Welcome back, ${user.name}!`, user };
+  } catch (err: any) {
+    return { success: false, message: err.message || 'Login failed. Please check credentials.' };
+  }
 }
 
-export function login(email: string, password?: string): { success: boolean; message: string; user?: User } {
-  const users = getUsersDB();
-  const normalizedEmail = email.trim().toLowerCase();
-  const user = users.find(u => u.email.toLowerCase() === normalizedEmail);
-
-  if (!user) {
-    return { success: false, message: 'No account found with this email address.' };
+export async function signup(
+  name: string,
+  email: string,
+  password?: string,
+  phone?: string
+): Promise<{ success: boolean; message: string; user?: User }> {
+  try {
+    if (!password) {
+      return { success: false, message: 'Password is required to create an account.' };
+    }
+    const result: any = await authApi.register({
+      name,
+      email,
+      password,
+      phone
+    });
+    const user = mapApiUserToFrontendUser(result.user);
+    notifyAuthChange(user);
+    return { success: true, message: `Welcome to ShopCart, ${user.name}!`, user };
+  } catch (err: any) {
+    return { success: false, message: err.message || 'Registration failed.' };
   }
-
-  if (password && user.password && user.password !== password) {
-    return { success: false, message: 'Incorrect password. Please try again.' };
-  }
-
-  localStorage.setItem(CURRENT_USER_STORAGE_KEY, user.id);
-  notifyAuthChange(user);
-  return { success: true, message: `Welcome back, ${user.name}!`, user };
 }
 
-export function signup(name: string, email: string, password?: string): { success: boolean; message: string; user?: User } {
-  const users = getUsersDB();
-  const normalizedEmail = email.trim().toLowerCase();
-
-  if (users.some(u => u.email.toLowerCase() === normalizedEmail)) {
-    return { success: false, message: 'An account with this email already exists. Please log in.' };
+/**
+ * Dispatches a 6-digit cryptographic OTP stored in Redis with 5-minute TTL.
+ */
+export async function sendOtp(email: string): Promise<{ success: boolean; message: string; expiresInSeconds?: number; devOtp?: string }> {
+  try {
+    const result = await authApi.sendOtp(email);
+    return {
+      success: true,
+      message: `A 6-digit verification code was sent to ${email} (valid for 5 minutes).`,
+      expiresInSeconds: result.expiresInSeconds,
+      devOtp: result.devOtp
+    };
+  } catch (err: any) {
+    return { success: false, message: err.message || 'Failed to send verification code.' };
   }
-
-  const now = new Date();
-  const monthName = now.toLocaleString('default', { month: 'long' });
-  const newUser: User = {
-    id: `usr_${Date.now()}_${Math.random().toString(36).substring(2, 6)}`,
-    name: name.trim(),
-    email: normalizedEmail,
-    password: password || 'password123',
-    phone: '+91 98765 00000',
-    memberTier: 'Member',
-    joinedDate: `${monthName} ${now.getFullYear()}`,
-    addresses: [
-      {
-        id: `addr_${Date.now()}`,
-        title: 'Home',
-        street: '123 MG Road',
-        city: 'Mumbai',
-        state: 'MH',
-        zipCode: '400001',
-        country: 'India',
-        isDefault: true
-      }
-    ]
-  };
-
-  users.push(newUser);
-  saveUsersDB(users);
-  localStorage.setItem(CURRENT_USER_STORAGE_KEY, newUser.id);
-  notifyAuthChange(newUser);
-  return { success: true, message: `Welcome to ShopCart, ${newUser.name}!`, user: newUser };
 }
 
-export function logout(): void {
-  localStorage.removeItem(CURRENT_USER_STORAGE_KEY);
+/**
+ * Verifies submitted OTP against Redis, completes JWT authentication, and syncs session with MongoDB.
+ */
+export async function verifyOtp(
+  email: string,
+  otp: string,
+  name?: string
+): Promise<{ success: boolean; message: string; user?: User }> {
+  try {
+    const result = await authApi.verifyOtp({ email, otp, name });
+    const user = mapApiUserToFrontendUser(result.user);
+    notifyAuthChange(user);
+    return { success: true, message: `Verified! Welcome, ${user.name}!`, user };
+  } catch (err: any) {
+    return { success: false, message: err.message || 'Invalid or expired verification code.' };
+  }
+}
+
+export async function logout(): Promise<void> {
+  try {
+    await authApi.logout();
+  } catch {
+    // Ignore error
+  }
   notifyAuthChange(null);
 }
 
-export function updateUserProfile(updates: Partial<User>): boolean {
-  const current = getCurrentUser();
-  if (!current) return false;
+export async function updateProfile(updates: Partial<User>): Promise<boolean> {
+  if (!inMemoryUser) return false;
 
-  const users = getUsersDB();
-  const index = users.findIndex(u => u.id === current.id);
-  if (index === -1) return false;
+  try {
+    const updated: any = await authApi.updateProfile({
+      name: updates.name,
+      phone: updates.phone,
+      avatar: updates.avatar
+    });
 
-  const updated: User = {
-    ...users[index],
-    ...updates,
-    id: current.id // Ensure ID remains immutable
-  };
-
-  users[index] = updated;
-  saveUsersDB(users);
-  notifyAuthChange(updated);
-  return true;
+    inMemoryUser = {
+      ...inMemoryUser,
+      name: updated.name || inMemoryUser.name,
+      phone: updated.phone || inMemoryUser.phone,
+      avatar: updated.avatar || inMemoryUser.avatar
+    };
+    notifyAuthChange(inMemoryUser);
+    return true;
+  } catch {
+    return false;
+  }
 }
 
-export function saveUserAddress(address: Omit<Address, 'id'>, editId?: string): boolean {
-  const user = getCurrentUser();
-  if (!user) return false;
+export async function saveAddress(address: Omit<Address, 'id'>, _editId?: string): Promise<boolean> {
+  if (!inMemoryUser) return false;
 
-  let addresses = [...user.addresses];
-  if (address.isDefault) {
-    addresses = addresses.map(a => ({ ...a, isDefault: false }));
-  }
-
-  if (editId) {
-    addresses = addresses.map(a => (a.id === editId ? { ...address, id: editId } : a));
-  } else {
-    addresses.push({
-      ...address,
-      id: `addr_${Date.now()}`
+  try {
+    const newAddr: any = await authApi.addAddress({
+      title: address.title,
+      street: address.street,
+      city: address.city,
+      state: address.state,
+      zipCode: address.zipCode,
+      country: address.country || 'India',
+      isDefault: address.isDefault || false
     });
-  }
 
-  return updateUserProfile({ addresses });
+    const addresses = inMemoryUser.addresses.filter((a) => a.id !== newAddr.id);
+    addresses.push({
+      id: newAddr.id,
+      title: newAddr.title,
+      street: newAddr.street,
+      city: newAddr.city,
+      state: newAddr.state,
+      zipCode: newAddr.zipCode || newAddr.zip_code,
+      country: newAddr.country,
+      isDefault: newAddr.isDefault ?? newAddr.is_default
+    });
+
+    inMemoryUser = { ...inMemoryUser, addresses };
+    notifyAuthChange(inMemoryUser);
+    return true;
+  } catch {
+    return false;
+  }
+}
+
+export async function deleteAddress(addressId: string): Promise<boolean> {
+  if (!inMemoryUser) return false;
+
+  try {
+    await authApi.deleteAddress(addressId);
+    const addresses = inMemoryUser.addresses.filter((a) => a.id !== addressId);
+    inMemoryUser = { ...inMemoryUser, addresses };
+    notifyAuthChange(inMemoryUser);
+    return true;
+  } catch {
+    return false;
+  }
 }

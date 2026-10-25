@@ -8,9 +8,14 @@ import { IconCart, IconHeart, IconEye, IconStar } from './Icons.js';
 interface ProductCardProps {
   product: Product;
   onOpenQuickView: (product: Product) => void;
+  onSelectProduct?: (product: Product) => void;
 }
 
-export const ProductCard: React.FC<ProductCardProps> = ({ product, onOpenQuickView }) => {
+export const ProductCard: React.FC<ProductCardProps> = ({
+  product,
+  onOpenQuickView,
+  onSelectProduct
+}) => {
   const { addToCart } = useCart();
   const { isInWishlist, toggleWishlist } = useWishlist();
   const { showToast } = useToast();
@@ -59,22 +64,34 @@ export const ProductCard: React.FC<ProductCardProps> = ({ product, onOpenQuickVi
         </button>
 
         {/* High-Res Product Image */}
-        <img
-          src={product.image}
-          alt={product.name}
-          className="product-img"
-          loading="lazy"
-          onError={(e) => {
-            const target = e.target as HTMLImageElement;
-            target.src = 'ECOMMERCE_PRODUCT_IMAGES/train/ELECTRONICS/3361_ELECTR_train.jpeg';
-          }}
-        />
+        <div
+          className="product-img-clickable"
+          onClick={() => (onSelectProduct ? onSelectProduct(product) : onOpenQuickView(product))}
+          role="button"
+          tabIndex={0}
+          aria-label={`View details for ${product.name}`}
+        >
+          <img
+            src={product.image}
+            alt={product.name}
+            className="product-img"
+            loading="lazy"
+            onError={(e) => {
+              const target = e.target as HTMLImageElement;
+              target.src = 'products/ECOMMERCE_PRODUCT_IMAGES/train/ELECTRONICS/3361_ELECTR_train.jpeg';
+            }}
+          />
+        </div>
 
         {/* Glassmorphic Quick View Overlay */}
         <div className="quick-overlay">
           <button
+            type="button"
             className="quick-view-btn"
-            onClick={() => onOpenQuickView(product)}
+            onClick={(e) => {
+              e.stopPropagation();
+              onOpenQuickView(product);
+            }}
             aria-label={`Quick view ${product.name}`}
           >
             <IconEye size={16} />
@@ -84,43 +101,50 @@ export const ProductCard: React.FC<ProductCardProps> = ({ product, onOpenQuickVi
       </div>
 
       <div className="product-info">
-        <div className="meta-row">
-          <span className="cat-tag">{product.categoryName}</span>
-          <div className="rating-pill">
-            <IconStar size={13} filled={true} />
-            <span className="rating-val">{product.rating}</span>
-            <span className="review-val">({product.reviews})</span>
-          </div>
-        </div>
-
         <h3
           className="product-title"
-          onClick={() => onOpenQuickView(product)}
+          onClick={() => (onSelectProduct ? onSelectProduct(product) : onOpenQuickView(product))}
           title={product.name}
+          role="button"
+          tabIndex={0}
         >
           {product.name}
         </h3>
 
+        <div className="meta-row">
+          <div className="flipkart-rating-badge" title={`${product.rating} out of 5 stars`}>
+            <span>{product.rating}</span>
+            <IconStar size={10} filled={true} style={{ color: '#fff' }} />
+          </div>
+          <span className="flipkart-rating-count">({product.reviews.toLocaleString('en-IN')})</span>
+          <span className="flipkart-assured-pill">⚡ Assured</span>
+        </div>
+
         <div className="pricing-row">
           <div className="price-box">
-            <span className="price">
-              ₹{product.price.toLocaleString('en-IN')}
-            </span>
+            <span className="price">₹{product.price.toLocaleString('en-IN')}</span>
             {product.wasPrice && (
               <span className="was-price">₹{product.wasPrice.toLocaleString('en-IN')}</span>
             )}
+            {product.discount && (
+              <span className="flipkart-discount-text">{product.discount}</span>
+            )}
           </div>
-          <span className="stock-pill">In Stock</span>
         </div>
 
-        <button
-          className="add-to-cart-btn"
-          onClick={handleAddToCart}
-          aria-label={`Add ${product.name} to cart`}
-        >
-          <IconCart size={17} />
-          <span>Add to Cart</span>
-        </button>
+        <div className="card-bottom-row">
+          <span className="flipkart-free-delivery">Free delivery</span>
+          <button
+            type="button"
+            className="flipkart-card-cart-btn"
+            onClick={handleAddToCart}
+            aria-label={`Add ${product.name} to cart`}
+            title="Add to Cart"
+          >
+            <IconCart size={14} />
+            <span>Add</span>
+          </button>
+        </div>
       </div>
     </article>
   );

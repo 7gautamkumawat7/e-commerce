@@ -5,13 +5,19 @@
   "type": "module",
   "scripts": {
     "dev": "vite",
+    "server": "npm --prefix backend run dev",
     "build": "tsc && vite build",
     "preview": "vite preview",
-    "typecheck": "tsc --noEmit"
+    "typecheck": "tsc --noEmit",
+    "test:backend": "npm --prefix backend test"
   },
   "dependencies": {
+    "class-variance-authority": "^0.7.1",
+    "clsx": "^2.1.1",
+    "lucide-react": "^1.61.0",
     "react": "^18.3.1",
-    "react-dom": "^18.3.1"
+    "react-dom": "^18.3.1",
+    "tailwind-merge": "^3.7.0"
   },
   "devDependencies": {
     "@types/node": "^22.13.9",

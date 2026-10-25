@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import type { RazorpayPaymentResult } from '../types.js';
+import type { RazorpayPaymentResult, ViewType } from '../types.js';
 import { useCart } from '../context/CartContext.js';
 import { useAuth } from '../context/AuthContext.js';
 import { useToast } from '../context/ToastContext.js';
@@ -14,12 +14,12 @@ import {
 } from './Icons.js';
 
 interface CartDrawerProps {
-  onNavigate: (view: 'store' | 'account', tab?: 'profile' | 'orders') => void;
+  onNavigate: (view: ViewType, tab?: 'profile' | 'orders') => void;
 }
 
 export const CartDrawer: React.FC<CartDrawerProps> = ({ onNavigate }) => {
   const { cart, isCartOpen, closeCart, updateQuantity, removeFromCart, summary, applyPromo, checkout } = useCart();
-  const { currentUser } = useAuth();
+  const { currentUser, openAuthModal } = useAuth();
   const { showToast } = useToast();
   const [promoCode, setPromoCode] = useState('');
   const [isRazorpayModalOpen, setIsRazorpayModalOpen] = useState(false);
@@ -55,6 +55,13 @@ export const CartDrawer: React.FC<CartDrawerProps> = ({ onNavigate }) => {
   const handleProceedToPayment = () => {
     if (cart.length === 0) {
       showToast('Your cart is empty. Please add items to proceed.', 'error');
+      return;
+    }
+
+    if (!currentUser) {
+      showToast('Please sign in or create an account to proceed to secure checkout.', 'info');
+      closeCart();
+      openAuthModal('login');
       return;
     }
 
@@ -132,7 +139,7 @@ export const CartDrawer: React.FC<CartDrawerProps> = ({ onNavigate }) => {
                   className="cart-item-thumb"
                   onError={(e) => {
                     const target = e.target as HTMLImageElement;
-                    target.src = 'ECOMMERCE_PRODUCT_IMAGES/train/ELECTRONICS/3361_ELECTR_train.jpeg';
+                    target.src = 'products/ECOMMERCE_PRODUCT_IMAGES/train/ELECTRONICS/3361_ELECTR_train.jpeg';
                   }}
                 />
                 <div className="cart-item-details">
@@ -220,6 +227,7 @@ export const CartDrawer: React.FC<CartDrawerProps> = ({ onNavigate }) => {
         currency="INR"
         userName={currentUser?.name || 'Valued Customer'}
         userEmail={currentUser?.email || 'customer@example.com'}
+        couponCode={promoCode || undefined}
         onSuccess={handlePaymentSuccess}
         onClose={() => setIsRazorpayModalOpen(false)}
       />

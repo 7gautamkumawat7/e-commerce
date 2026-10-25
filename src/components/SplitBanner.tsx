@@ -10,8 +10,7 @@ export const SplitBanner: React.FC<SplitBannerProps> = ({ onSelectCategory }) =>
   const handleExplore = (e: React.MouseEvent) => {
     e.preventDefault();
     onSelectCategory('home');
-    const catalogEl = document.getElementById('product-catalog-section');
-    catalogEl?.scrollIntoView({ behavior: 'smooth' });
+    window.location.hash = '/category/home';
   };
 
   return (
@@ -40,7 +39,7 @@ export const SplitBanner: React.FC<SplitBannerProps> = ({ onSelectCategory }) =>
         {/* Layered Showcase Cards with actual photography */}
         <div className="banner-card-primary">
           <img
-            src="ECOMMERCE_PRODUCT_IMAGES/train/HOME_KITCHEN_TOOLS/10000_HOME_K_train.jpeg"
+            src="products/ECOMMERCE_PRODUCT_IMAGES/train/HOME_KITCHEN_TOOLS/10000_HOME_K_train.jpeg"
             alt="Handcrafted Matte Ceramic Mug Set"
             className="banner-primary-img"
           />
@@ -52,7 +51,7 @@ export const SplitBanner: React.FC<SplitBannerProps> = ({ onSelectCategory }) =>
 
         <div className="banner-card-float">
           <img
-            src="ECOMMERCE_PRODUCT_IMAGES/train/HOME_KITCHEN_TOOLS/10007_HOME_K_train.jpeg"
+            src="products/ECOMMERCE_PRODUCT_IMAGES/train/HOME_KITCHEN_TOOLS/10007_HOME_K_train.jpeg"
             alt="Cast Iron Skillet"
             className="banner-float-img"
           />

@@ -1,0 +1,269 @@
+{
+  "openapi": "3.0.3",
+  "info": {
+    "title": "ShopCart E-Commerce & Payment API",
+    "version": "1.0.0",
+    "description": "Production-grade payment infrastructure, order state machine, concurrency-safe inventory, and Razorpay integration API."
+  },
+  "servers": [
+    {
+      "url": "http://localhost:5000",
+      "description": "Local Development Server"
+    }
+  ],
+  "paths": {
+    "/health": {
+      "get": {
+        "summary": "Liveness Probe",
+        "description": "Returns HTTP 200 if the Node.js server process is responsive.",
+        "responses": {
+          "200": { "description": "Process is alive" }
+        }
+      }
+    },
+    "/ready": {
+      "get": {
+        "summary": "Readiness Probe",
+        "description": "Verifies live connectivity to PostgreSQL (SELECT 1) and Redis (PING).",
+        "responses": {
+          "200": { "description": "Dependencies are healthy" },
+          "503": { "description": "Critical dependencies unreachable" }
+        }
+      }
+    },
+    "/api/auth/register": {
+      "post": {
+        "summary": "Register a new user",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": ["name", "email", "password"],
+                "properties": {
+                  "name": { "type": "string" },
+                  "email": { "type": "string", "format": "email" },
+                  "password": { "type": "string", "minLength": 6 },
+                  "phone": { "type": "string" }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": { "description": "User created, HTTP-only cookies set" },
+          "400": { "description": "Validation error" },
+          "409": { "description": "User already exists" }
+        }
+      }
+    },
+    "/api/auth/login": {
+      "post": {
+        "summary": "Log in an existing user",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": ["email", "password"],
+                "properties": {
+                  "email": { "type": "string" },
+                  "password": { "type": "string" }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": { "description": "Logged in, HTTP-only cookies set" },
+          "401": { "description": "Invalid credentials" }
+        }
+      }
+    },
+    "/api/auth/me": {
+      "get": {
+        "summary": "Get current authenticated user profile and addresses",
+        "security": [{ "cookieAuth": [] }],
+        "responses": {
+          "200": { "description": "Current user profile" },
+          "401": { "description": "Unauthorized" }
+        }
+      }
+    },
+    "/api/products": {
+      "get": {
+        "summary": "List product catalog with Redis caching",
+        "parameters": [
+          { "name": "category", "in": "query", "schema": { "type": "string" } },
+          { "name": "search", "in": "query", "schema": { "type": "string" } },
+          { "name": "sort", "in": "query", "schema": { "type": "string", "enum": ["featured", "discount", "price-low", "price-high", "rating"] } }
+        ],
+        "responses": {
+          "200": { "description": "List of active products with stock" }
+        }
+      }
+    },
+    "/api/cart": {
+      "get": {
+        "summary": "Get user shopping cart with authoritative server calculations",
+        "security": [{ "cookieAuth": [] }],
+        "responses": {
+          "200": { "description": "Cart items, subtotal, shipping, and total" }
+        }
+      }
+    },
+    "/api/cart/items": {
+      "post": {
+        "summary": "Add item to cart",
+        "security": [{ "cookieAuth": [] }],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": ["productId"],
+                "properties": {
+                  "productId": { "type": "string" },
+                  "quantity": { "type": "integer", "default": 1 }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": { "description": "Updated cart" },
+          "400": { "description": "Out of stock or invalid quantity" }
+        }
+      }
+    },
+    "/api/coupons/apply": {
+      "post": {
+        "summary": "Validate coupon code server-side",
+        "security": [{ "cookieAuth": [] }],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": ["code"],
+                "properties": {
+                  "code": { "type": "string" }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": { "description": "Coupon applied and discount calculated" },
+          "400": { "description": "Coupon invalid, expired, or limit reached" }
+        }
+      }
+    },
+    "/api/payments/create-order": {
+      "post": {
+        "summary": "Create Razorpay Order from server-side database totals",
+        "security": [{ "cookieAuth": [] }],
+        "parameters": [
+          { "name": "Idempotency-Key", "in": "header", "schema": { "type": "string" } }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "couponCode": { "type": "string" },
+                  "shippingAddressId": { "type": "string" }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": { "description": "Safe checkout payload: internal orderId, razorpayOrderId, amountCents, currency, keyId" },
+          "400": { "description": "Cart empty" },
+          "409": { "description": "Out of stock during order creation or idempotency conflict" }
+        }
+      }
+    },
+    "/api/payments/verify": {
+      "post": {
+        "summary": "Verify payment HMAC signature and capture order atomically",
+        "security": [{ "cookieAuth": [] }],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": ["orderId", "razorpayOrderId", "razorpayPaymentId", "razorpaySignature"],
+                "properties": {
+                  "orderId": { "type": "string" },
+                  "razorpayOrderId": { "type": "string" },
+                  "razorpayPaymentId": { "type": "string" },
+                  "razorpaySignature": { "type": "string" }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": { "description": "Payment confirmed, inventory decremented, cart cleared" },
+          "400": { "description": "Invalid signature" },
+          "409": { "description": "Inventory race condition" }
+        }
+      }
+    },
+    "/api/webhooks/razorpay": {
+      "post": {
+        "summary": "Asynchronous Razorpay signed webhook ingestion",
+        "parameters": [
+          { "name": "X-Razorpay-Signature", "in": "header", "required": true, "schema": { "type": "string" } }
+        ],
+        "responses": {
+          "200": { "description": "Webhook verified and processed (or deduplicated safely)" },
+          "400": { "description": "Invalid signature" }
+        }
+      }
+    },
+    "/api/payments/{id}/refund": {
+      "post": {
+        "summary": "Initiate full or partial refund",
+        "security": [{ "cookieAuth": [] }],
+        "parameters": [
+          { "name": "id", "in": "path", "required": true, "schema": { "type": "string" } }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "amountCents": { "type": "integer" },
+                  "reason": { "type": "string" }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": { "description": "Refund processed" },
+          "400": { "description": "Payment not refundable" }
+        }
+      }
+    }
+  },
+  "components": {
+    "securitySchemes": {
+      "cookieAuth": {
+        "type": "apiKey",
+        "in": "cookie",
+        "name": "access_token"
+      }
+    }
+  }
+}

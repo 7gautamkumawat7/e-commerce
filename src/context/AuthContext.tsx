@@ -1,41 +1,17 @@
-import React, { createContext, useContext, useState } from 'react';
+import React, { createContext, useContext, useState, useEffect } from 'react';
 import type { User, Address, AuthMode } from '../types.js';
-
-const USERS_STORAGE_KEY = 'shopcart_users_db';
-const CURRENT_USER_STORAGE_KEY = 'shopcart_current_user_id';
-
-const DEFAULT_DEMO_USER: User = {
-  id: 'usr_demo_101',
-  name: 'Alex Johnson',
-  email: 'demo@shopcart.com',
-  password: 'password123',
-  phone: '+91 98765 43210',
-  avatar: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=256&q=80',
-  memberTier: 'Gold VIP',
-  joinedDate: 'January 2024',
-  addresses: [
-    {
-      id: 'addr_1',
-      title: 'Home',
-      street: 'Flat 402, Lotus Heights, Bandra West',
-      city: 'Mumbai',
-      state: 'MH',
-      zipCode: '400050',
-      country: 'India',
-      isDefault: true
-    },
-    {
-      id: 'addr_2',
-      title: 'Work / Tech Park',
-      street: 'Tower 4, Floor 7, Manyata Tech Park',
-      city: 'Bengaluru',
-      state: 'KA',
-      zipCode: '560045',
-      country: 'India',
-      isDefault: false
-    }
-  ]
-};
+import {
+  getCurrentUser,
+  subscribeAuth,
+  login as authServiceLogin,
+  signup as authServiceSignup,
+  sendOtp as authServiceSendOtp,
+  verifyOtp as authServiceVerifyOtp,
+  logout as authServiceLogout,
+  updateProfile as authServiceUpdateProfile,
+  saveAddress as authServiceSaveAddress,
+  deleteAddress as authServiceDeleteAddress
+} from '../services/auth.js';
 
 interface AuthContextType {
   currentUser: User | null;
@@ -44,50 +20,29 @@ interface AuthContextType {
   openAuthModal: (mode?: AuthMode) => void;
   closeAuthModal: () => void;
   switchAuthMode: (mode: AuthMode) => void;
-  login: (email: string, password?: string) => { success: boolean; message: string; user?: User };
-  signup: (name: string, email: string, password?: string) => { success: boolean; message: string; user?: User };
+  login: (email: string, password?: string) => Promise<{ success: boolean; message: string; user?: User }>;
+  signup: (name: string, email: string, password?: string, phone?: string) => Promise<{ success: boolean; message: string; user?: User }>;
+  sendOtp: (email: string) => Promise<{ success: boolean; message: string; expiresInSeconds?: number; devOtp?: string }>;
+  verifyOtp: (email: string, otp: string, name?: string) => Promise<{ success: boolean; message: string; user?: User }>;
   logout: () => void;
-  updateProfile: (updates: Partial<User>) => boolean;
-  saveAddress: (address: Omit<Address, 'id'>, editId?: string) => boolean;
+  updateProfile: (updates: Partial<User>) => Promise<boolean>;
+  saveAddress: (address: Omit<Address, 'id'>, editId?: string) => Promise<boolean>;
+  deleteAddress: (addressId: string) => Promise<boolean>;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
 export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-  const [currentUser, setCurrentUser] = useState<User | null>(() => {
-    try {
-      const rawUsers = localStorage.getItem(USERS_STORAGE_KEY);
-      const currentId = localStorage.getItem(CURRENT_USER_STORAGE_KEY);
-      let users: User[] = rawUsers ? JSON.parse(rawUsers) : [];
-      if (users.length === 0) {
-        users = [DEFAULT_DEMO_USER];
-        localStorage.setItem(USERS_STORAGE_KEY, JSON.stringify(users));
-      }
-      return users.find((u) => u.id === currentId) || null;
-    } catch {
-      return null;
-    }
-  });
-
+  const [currentUser, setCurrentUser] = useState<User | null>(getCurrentUser);
   const [isAuthOpen, setIsAuthOpen] = useState(false);
   const [authMode, setAuthMode] = useState<AuthMode>('login');
 
-  const getUsersDB = (): User[] => {
-    try {
-      const raw = localStorage.getItem(USERS_STORAGE_KEY);
-      return raw ? JSON.parse(raw) : [DEFAULT_DEMO_USER];
-    } catch {
-      return [DEFAULT_DEMO_USER];
-    }
-  };
-
-  const saveUsersDB = (users: User[]) => {
-    try {
-      localStorage.setItem(USERS_STORAGE_KEY, JSON.stringify(users));
-    } catch (err) {
-      console.error('Failed to save users:', err);
-    }
-  };
+  useEffect(() => {
+    const unsubscribe = subscribeAuth((user) => {
+      setCurrentUser(user);
+    });
+    return unsubscribe;
+  }, []);
 
   const openAuthModal = (mode: AuthMode = 'login') => {
     setAuthMode(mode);
@@ -102,107 +57,48 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     setAuthMode(mode);
   };
 
-  const login = (email: string, password?: string) => {
-    const users = getUsersDB();
-    const normalized = email.trim().toLowerCase();
-    const user = users.find((u) => u.email.toLowerCase() === normalized);
-
-    if (!user) {
-      return { success: false, message: 'No account found with this email address.' };
+  const login = async (email: string, password?: string) => {
+    const result = await authServiceLogin(email, password);
+    if (result.success) {
+      closeAuthModal();
     }
-
-    if (password && user.password && user.password !== password) {
-      return { success: false, message: 'Incorrect password. Please try again.' };
-    }
-
-    localStorage.setItem(CURRENT_USER_STORAGE_KEY, user.id);
-    setCurrentUser(user);
-    closeAuthModal();
-    return { success: true, message: `Welcome back, ${user.name}!`, user };
+    return result;
   };
 
-  const signup = (name: string, email: string, password?: string) => {
-    const users = getUsersDB();
-    const normalized = email.trim().toLowerCase();
-
-    if (users.some((u) => u.email.toLowerCase() === normalized)) {
-      return { success: false, message: 'An account with this email already exists. Please sign in.' };
+  const signup = async (name: string, email: string, password?: string, phone?: string) => {
+    const result = await authServiceSignup(name, email, password, phone);
+    if (result.success) {
+      closeAuthModal();
     }
+    return result;
+  };
 
-    const now = new Date();
-    const month = now.toLocaleString('default', { month: 'long' });
-    const newUser: User = {
-      id: `usr_${Date.now()}_${Math.random().toString(36).substring(2, 6)}`,
-      name: name.trim(),
-      email: normalized,
-      password: password || 'password123',
-      phone: '+91 98765 00000',
-      memberTier: 'Member',
-      joinedDate: `${month} ${now.getFullYear()}`,
-      addresses: [
-        {
-          id: `addr_${Date.now()}`,
-          title: 'Home',
-          street: '123 MG Road',
-          city: 'Mumbai',
-          state: 'MH',
-          zipCode: '400001',
-          country: 'India',
-          isDefault: true
-        }
-      ]
-    };
+  const sendOtp = async (email: string) => {
+    return await authServiceSendOtp(email);
+  };
 
-    users.push(newUser);
-    saveUsersDB(users);
-    localStorage.setItem(CURRENT_USER_STORAGE_KEY, newUser.id);
-    setCurrentUser(newUser);
-    closeAuthModal();
-    return { success: true, message: `Welcome to ShopCart, ${newUser.name}!`, user: newUser };
+  const verifyOtp = async (email: string, otp: string, name?: string) => {
+    const result = await authServiceVerifyOtp(email, otp, name);
+    if (result.success) {
+      closeAuthModal();
+    }
+    return result;
   };
 
   const logout = () => {
-    localStorage.removeItem(CURRENT_USER_STORAGE_KEY);
-    setCurrentUser(null);
+    authServiceLogout();
   };
 
-  const updateProfile = (updates: Partial<User>): boolean => {
-    if (!currentUser) return false;
-
-    const users = getUsersDB();
-    const index = users.findIndex((u) => u.id === currentUser.id);
-    if (index === -1) return false;
-
-    const updated: User = {
-      ...users[index],
-      ...updates,
-      id: currentUser.id
-    };
-
-    users[index] = updated;
-    saveUsersDB(users);
-    setCurrentUser(updated);
-    return true;
+  const updateProfile = async (updates: Partial<User>): Promise<boolean> => {
+    return await authServiceUpdateProfile(updates);
   };
 
-  const saveAddress = (address: Omit<Address, 'id'>, editId?: string): boolean => {
-    if (!currentUser) return false;
+  const saveAddress = async (address: Omit<Address, 'id'>, editId?: string): Promise<boolean> => {
+    return await authServiceSaveAddress(address, editId);
+  };
 
-    let addresses = [...currentUser.addresses];
-    if (address.isDefault) {
-      addresses = addresses.map((a) => ({ ...a, isDefault: false }));
-    }
-
-    if (editId) {
-      addresses = addresses.map((a) => (a.id === editId ? { ...address, id: editId } : a));
-    } else {
-      addresses.push({
-        ...address,
-        id: `addr_${Date.now()}`
-      });
-    }
-
-    return updateProfile({ addresses });
+  const deleteAddress = async (addressId: string): Promise<boolean> => {
+    return await authServiceDeleteAddress(addressId);
   };
 
   return (
@@ -216,9 +112,12 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         switchAuthMode,
         login,
         signup,
+        sendOtp,
+        verifyOtp,
         logout,
         updateProfile,
-        saveAddress
+        saveAddress,
+        deleteAddress
       }}
     >
       {children}
@@ -232,4 +131,4 @@ export function useAuth(): AuthContextType {
     throw new Error('useAuth must be used within an AuthProvider');
   }
   return context;
-};
+}

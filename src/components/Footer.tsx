@@ -1,9 +1,10 @@
 import React from 'react';
+import type { ViewType } from '../types.js';
 import { useToast } from '../context/ToastContext.js';
 import { IconSparkles, IconShieldCheck, IconTruck, IconRotateCcw } from './Icons.js';
 
 interface FooterProps {
-  onNavigate: (view: 'store' | 'account', tab?: 'profile' | 'orders') => void;
+  onNavigate: (view: ViewType, tab?: 'profile' | 'orders') => void;
 }
 
 export const Footer: React.FC<FooterProps> = ({ onNavigate }) => {
@@ -62,6 +63,10 @@ export const Footer: React.FC<FooterProps> = ({ onNavigate }) => {
           <div className="footer-compliance-badges">
             <span className="security-tag">🔒 256-Bit SSL Encrypted</span>
             <span className="security-tag">⚡ Razorpay Live Verified</span>
+            <div className="footer-theme-pill" title="Footer styling harmonizes with active theme color">
+              <span className="footer-theme-pulse" />
+              <span>Adaptive Dynamic Theme</span>
+            </div>
           </div>
         </div>
 

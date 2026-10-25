@@ -10,6 +10,8 @@ import {
   IconArrowRight
 } from './Icons.js';
 
+import { PRODUCTS } from '../data/products.js';
+
 interface CategoryGridProps {
   onSelectCategory: (category: Category) => void;
 }
@@ -26,7 +28,7 @@ export const CategoryGrid: React.FC<CategoryGridProps> = ({ onSelectCategory }) 
       id: 'electronics' as Category,
       title: 'Tech & Electronics',
       subtitle: 'Audio, Wearables & Optics',
-      count: '6 Items',
+      count: `${PRODUCTS.filter((p) => p.category === 'electronics').length} Items`,
       icon: <IconLaptop size={28} />,
       themeClass: 'cat-theme-blue'
     },
@@ -34,7 +36,7 @@ export const CategoryGrid: React.FC<CategoryGridProps> = ({ onSelectCategory }) 
       id: 'fashion' as Category,
       title: 'Fashion & Style',
       subtitle: 'Apparel, Shoes & Watches',
-      count: '5 Items',
+      count: `${PRODUCTS.filter((p) => p.category === 'fashion').length} Items`,
       icon: <IconShirt size={28} />,
       themeClass: 'cat-theme-rose'
     },
@@ -42,7 +44,7 @@ export const CategoryGrid: React.FC<CategoryGridProps> = ({ onSelectCategory }) 
       id: 'home' as Category,
       title: 'Home & Living',
       subtitle: 'Kitchen, Decor & Organization',
-      count: '5 Items',
+      count: `${PRODUCTS.filter((p) => p.category === 'home').length} Items`,
       icon: <IconHome size={28} />,
       themeClass: 'cat-theme-amber'
     },
@@ -50,7 +52,7 @@ export const CategoryGrid: React.FC<CategoryGridProps> = ({ onSelectCategory }) 
       id: 'beauty' as Category,
       title: 'Beauty & Wellness',
       subtitle: 'Skincare & Personal Care',
-      count: '4 Items',
+      count: `${PRODUCTS.filter((p) => p.category === 'beauty').length} Items`,
       icon: <IconSparkleBeauty size={28} />,
       themeClass: 'cat-theme-emerald'
     },
@@ -58,7 +60,7 @@ export const CategoryGrid: React.FC<CategoryGridProps> = ({ onSelectCategory }) 
       id: 'electronics' as Category,
       title: 'Gaming & Audio',
       subtitle: 'Controllers & Studio Gear',
-      count: '4 Items',
+      count: `${PRODUCTS.filter((p) => p.category === 'electronics').length} Items`,
       icon: <IconGamepad size={28} />,
       themeClass: 'cat-theme-indigo'
     },
@@ -66,7 +68,7 @@ export const CategoryGrid: React.FC<CategoryGridProps> = ({ onSelectCategory }) 
       id: 'pets' as Category,
       title: 'Pet Supplies',
       subtitle: 'Beds, Toys & Feeding',
-      count: '4 Items',
+      count: `${PRODUCTS.filter((p) => p.category === 'pets').length} Items`,
       icon: <IconPaw size={28} />,
       themeClass: 'cat-theme-orange'
     }

@@ -5,18 +5,27 @@ import { IconStar, IconArrowRight, IconEye } from './Icons.js';
 
 interface TopRatedSectionProps {
   onOpenQuickView: (product: Product) => void;
+  onSelectProduct?: (product: Product) => void;
 }
 
-export const TopRatedSection: React.FC<TopRatedSectionProps> = ({ onOpenQuickView }) => {
-  const handleQuickViewById = (productId: string) => {
+export const TopRatedSection: React.FC<TopRatedSectionProps> = ({
+  onOpenQuickView,
+  onSelectProduct
+}) => {
+  const handleProductClick = (productId: string) => {
     const product = PRODUCTS.find((p) => p.id === productId);
-    if (product) onOpenQuickView(product);
+    if (product) {
+      if (onSelectProduct) {
+        onSelectProduct(product);
+      } else {
+        onOpenQuickView(product);
+      }
+    }
   };
 
-  const scrollToCatalog = (e: React.MouseEvent) => {
+  const handleExploreAll = (e: React.MouseEvent) => {
     e.preventDefault();
-    const catalogSection = document.getElementById('product-catalog-section');
-    catalogSection?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    window.location.hash = '/top-rated';
   };
 
   const curatedTopPicks = [
@@ -28,7 +37,7 @@ export const TopRatedSection: React.FC<TopRatedSectionProps> = ({ onOpenQuickVie
       wasPrice: '₹1,999',
       rating: 4.9,
       reviews: 1850,
-      image: 'ECOMMERCE_PRODUCT_IMAGES/train/BEAUTY_HEALTH/1088_BEAUTY_train.jpeg'
+      image: 'products/ECOMMERCE_PRODUCT_IMAGES/train/BEAUTY_HEALTH/1088_BEAUTY_train.jpeg'
     },
     {
       id: 'home-3',
@@ -38,7 +47,7 @@ export const TopRatedSection: React.FC<TopRatedSectionProps> = ({ onOpenQuickVie
       wasPrice: '₹2,299',
       rating: 4.8,
       reviews: 410,
-      image: 'ECOMMERCE_PRODUCT_IMAGES/train/HOME_KITCHEN_TOOLS/10014_HOME_K_train.jpeg'
+      image: 'products/ECOMMERCE_PRODUCT_IMAGES/train/HOME_KITCHEN_TOOLS/10014_HOME_K_train.jpeg'
     },
     {
       id: 'fash-2',
@@ -48,7 +57,7 @@ export const TopRatedSection: React.FC<TopRatedSectionProps> = ({ onOpenQuickVie
       wasPrice: '₹4,199',
       rating: 4.7,
       reviews: 512,
-      image: 'ECOMMERCE_PRODUCT_IMAGES/train/CLOTHING_ACCESSORIES_JEWELLERY/2301_CLOTHI_train.jpeg'
+      image: 'products/ECOMMERCE_PRODUCT_IMAGES/train/CLOTHING_ACCESSORIES_JEWELLERY/2301_CLOTHI_train.jpeg'
     }
   ];
 
@@ -59,7 +68,7 @@ export const TopRatedSection: React.FC<TopRatedSectionProps> = ({ onOpenQuickVie
           <p className="eyebrow">COMMUNITY FAVORITES</p>
           <h2 className="section-title">Customers Are Loving These</h2>
         </div>
-        <a href="#product-catalog-section" onClick={scrollToCatalog} className="section-link-btn">
+        <a href="#/top-rated" onClick={handleExploreAll} className="section-link-btn">
           <span>Explore all top rated</span>
           <IconArrowRight size={15} />
         </a>
@@ -70,12 +79,12 @@ export const TopRatedSection: React.FC<TopRatedSectionProps> = ({ onOpenQuickVie
           <div
             key={item.id}
             className="top-rated-card"
-            onClick={() => handleQuickViewById(item.id)}
+            onClick={() => handleProductClick(item.id)}
             role="button"
             tabIndex={0}
             onKeyDown={(e) => {
               if (e.key === 'Enter' || e.key === ' ') {
-                handleQuickViewById(item.id);
+                handleProductClick(item.id);
               }
             }}
           >
@@ -86,7 +95,8 @@ export const TopRatedSection: React.FC<TopRatedSectionProps> = ({ onOpenQuickVie
                 aria-label={`Quick view ${item.title}`}
                 onClick={(e) => {
                   e.stopPropagation();
-                  handleQuickViewById(item.id);
+                  const prod = PRODUCTS.find((p) => p.id === item.id);
+                  if (prod) onOpenQuickView(prod);
                 }}
               >
                 <IconEye size={15} />

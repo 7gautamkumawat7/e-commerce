@@ -1,86 +1,92 @@
 import type { Order, CartItem } from '../types.js';
 import { getCurrentUser } from './auth.js';
+import { ordersApi } from './api.js';
 
-const ORDERS_STORAGE_KEY = 'shopcart_orders_db';
+let inMemoryOrders: Order[] = [];
+let isOrdersLoaded = false;
 
-const SEED_ORDERS: Order[] = [
-  {
-    id: 'ORD-2025-9832',
-    userId: 'usr_demo_101',
-    date: 'Sep 10, 2025',
-    status: 'Delivered',
-    items: [
-      {
-        productId: 'elec-1',
-        name: 'Active Noise-Canceling Wireless Over-Ear Headphones',
-        price: 4999,
-        quantity: 1,
-        image: 'ECOMMERCE_PRODUCT_IMAGES/train/ELECTRONICS/3361_ELECTR_train.jpeg'
-      },
-      {
-        productId: 'beauty-1',
-        name: 'Hyaluronic Acid Multi-Molecular Hydration Serum 50ml',
-        price: 1299,
-        quantity: 2,
-        image: 'ECOMMERCE_PRODUCT_IMAGES/train/BEAUTY_HEALTH/1088_BEAUTY_train.jpeg'
-      }
-    ],
-    subtotal: 7597,
-    shipping: 0,
-    discount: 1519.40,
-    total: 6077.60,
-    trackingNumber: 'TRK-MH-88421094',
-    shippingAddress: 'Flat 402, Lotus Heights, Bandra West, Mumbai, MH 400050'
-  },
-  {
-    id: 'ORD-2025-8419',
-    userId: 'usr_demo_101',
-    date: 'Aug 24, 2025',
-    status: 'Delivered',
-    items: [
-      {
-        productId: 'fash-1',
-        name: 'Minimalist Stainless Steel Mesh Chronograph Watch',
-        price: 4999,
-        quantity: 1,
-        image: 'ECOMMERCE_PRODUCT_IMAGES/train/CLOTHING_ACCESSORIES_JEWELLERY/2290_CLOTHI_train.jpeg'
-      }
-    ],
-    subtotal: 4999,
-    shipping: 0,
-    discount: 0,
-    total: 4999,
-    trackingNumber: 'TRK-DEL-33910842',
-    shippingAddress: 'Flat 402, Lotus Heights, Bandra West, Mumbai, MH 400050'
-  }
-];
-
-function getAllOrders(): Order[] {
-  try {
-    const raw = localStorage.getItem(ORDERS_STORAGE_KEY);
-    if (!raw) {
-      localStorage.setItem(ORDERS_STORAGE_KEY, JSON.stringify(SEED_ORDERS));
-      return SEED_ORDERS;
+function mapApiOrderToFrontendOrder(apiOrder: any): Order {
+  let address = 'Primary Delivery Address';
+  if (apiOrder.shippingAddress) {
+    if (typeof apiOrder.shippingAddress === 'string') {
+      address = apiOrder.shippingAddress;
+    } else {
+      address = `${apiOrder.shippingAddress.street || ''}, ${apiOrder.shippingAddress.city || ''}, ${apiOrder.shippingAddress.state || ''} ${apiOrder.shippingAddress.zipCode || ''}`;
     }
-    return JSON.parse(raw) as Order[];
-  } catch {
-    return SEED_ORDERS;
+  } else if (apiOrder.shipping_address_json) {
+    address = typeof apiOrder.shipping_address_json === 'string'
+      ? apiOrder.shipping_address_json
+      : `${apiOrder.shipping_address_json.street || ''}, ${apiOrder.shipping_address_json.city || ''}, ${apiOrder.shipping_address_json.state || ''} ${apiOrder.shipping_address_json.zipCode || ''}`;
   }
+
+  const dateObj = apiOrder.createdAt || apiOrder.created_at ? new Date(apiOrder.createdAt || apiOrder.created_at) : new Date();
+  const dateStr = dateObj.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+
+  let displayStatus: Order['status'] = 'Processing';
+  const rawStatus = (apiOrder.orderStatus || apiOrder.status || '').toLowerCase();
+  if (rawStatus === 'delivered') displayStatus = 'Delivered';
+  else if (rawStatus === 'shipped') displayStatus = 'Shipped';
+  else if (rawStatus === 'out_for_delivery' || rawStatus === 'out for delivery') displayStatus = 'Out for Delivery';
+  else if (rawStatus === 'cancelled') displayStatus = 'Cancelled';
+  else if (rawStatus === 'confirmed' || rawStatus === 'placed' || rawStatus === 'processing') displayStatus = 'Processing';
+
+  const subtotal = apiOrder.amountSubtotal !== undefined ? apiOrder.amountSubtotal : (apiOrder.subtotal_cents || 0) / 100;
+  const shipping = apiOrder.amountShipping !== undefined ? apiOrder.amountShipping : (apiOrder.shipping_cents || 0) / 100;
+  const discount = apiOrder.amountDiscount !== undefined ? apiOrder.amountDiscount : (apiOrder.discount_cents || 0) / 100;
+  const total = apiOrder.amountTotal !== undefined ? apiOrder.amountTotal : (apiOrder.total_cents || 0) / 100;
+
+  const items = (apiOrder.items || []).map((item: any) => ({
+    productId: item.productId || item.product_id,
+    name: item.name || item.product_name,
+    price: item.price !== undefined ? item.price : (item.price_cents || 0) / 100,
+    quantity: item.quantity,
+    image: item.image
+  }));
+
+  return {
+    id: apiOrder.orderId || apiOrder.order_number || apiOrder.id,
+    userId: apiOrder.userId || apiOrder.user_id,
+    date: dateStr,
+    status: displayStatus,
+    items,
+    subtotal,
+    shipping,
+    discount,
+    total,
+    trackingNumber: apiOrder.trackingNumber || apiOrder.tracking_number || `TRK-IN-${(apiOrder.orderId || apiOrder.id || '').slice(-8)}`,
+    shippingAddress: address,
+    paymentId: apiOrder.paymentDetails?.razorpayPaymentId || apiOrder.payment_id,
+    paymentMethod: apiOrder.paymentDetails?.method || apiOrder.payment_method
+  };
 }
 
-function saveOrders(orders: Order[]): void {
+export async function fetchUserOrders(): Promise<Order[]> {
   try {
-    localStorage.setItem(ORDERS_STORAGE_KEY, JSON.stringify(orders));
-  } catch (err) {
-    console.error('Failed to save orders:', err);
+    const list = await ordersApi.getOrders();
+    inMemoryOrders = list.map(mapApiOrderToFrontendOrder);
+    isOrdersLoaded = true;
+    return inMemoryOrders;
+  } catch {
+    return inMemoryOrders;
   }
 }
 
 export function getUserOrders(userId?: string): Order[] {
   const current = getCurrentUser();
-  const targetId = userId || (current ? current.id : 'guest');
-  const all = getAllOrders();
-  return all.filter(o => o.userId === targetId);
+  if (!current && !userId) {
+    return [];
+  }
+  const targetId = userId || current!.id;
+
+  if (!isOrdersLoaded) {
+    fetchUserOrders();
+  }
+
+  return inMemoryOrders.filter((o) => o.userId === targetId);
+}
+
+export function addLocalOrder(order: Order): void {
+  inMemoryOrders.unshift(order);
 }
 
 export function createOrderFromCart(
@@ -94,46 +100,69 @@ export function createOrderFromCart(
   paymentMethod?: string
 ): Order {
   const user = getCurrentUser();
-  const userId = user ? user.id : 'usr_demo_101';
-  
-  const defaultAddr = user?.addresses.find(a => a.isDefault);
-  const formattedAddress = customAddress || 
-    (defaultAddr 
-      ? `${defaultAddr.street}, ${defaultAddr.city}, ${defaultAddr.state} ${defaultAddr.zipCode}`
-      : 'Flat 402, Lotus Heights, Bandra West, Mumbai, MH 400050');
+  const userId = user ? user.id : 'guest';
 
+  const defaultAddr = user?.addresses?.find((a) => a.isDefault);
+  const formattedAddress =
+    customAddress ||
+    (defaultAddr
+      ? `${defaultAddr.street}, ${defaultAddr.city}, ${defaultAddr.state} ${defaultAddr.zipCode}`
+      : '123 MG Road, Mumbai, MH 400001');
+
+  const randomDigits = Math.floor(1000 + Math.random() * 9000);
   const now = new Date();
-  const dateString = now.toLocaleDateString('en-US', {
-    month: 'short',
-    day: 'numeric',
-    year: 'numeric'
-  });
+  const dateStr = now.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+  const orderId = `ORD-${now.getFullYear()}-${randomDigits}`;
 
   const newOrder: Order = {
-    id: `ORD-${now.getFullYear()}-${Math.floor(1000 + Math.random() * 9000)}`,
-    userId: userId,
-    date: dateString,
+    id: orderId,
+    userId,
+    date: dateStr,
     status: 'Processing',
-    items: cartItems.map(c => ({
-      productId: c.id,
-      name: c.name,
-      price: c.price,
-      quantity: c.quantity,
-      image: c.image
+    items: cartItems.map((item) => ({
+      productId: item.id,
+      name: item.name,
+      price: item.price,
+      quantity: item.quantity,
+      image: item.image
     })),
-    subtotal: subtotal,
-    shipping: shipping,
-    discount: discount,
-    total: total,
-    trackingNumber: `TRK-SC-${Date.now().toString().slice(-8)}`,
+    subtotal,
+    shipping,
+    discount,
+    total,
+    trackingNumber: `TRK-IN-${Math.floor(10000000 + Math.random() * 90000000)}`,
     shippingAddress: formattedAddress,
-    paymentId: paymentId || `pay_rzp_test_${Date.now().toString().slice(-8)}`,
-    paymentMethod: paymentMethod || 'Razorpay Test Checkout'
+    paymentId,
+    paymentMethod: paymentMethod || 'razorpay'
   };
 
-  const all = getAllOrders();
-  all.unshift(newOrder);
-  saveOrders(all);
+  addLocalOrder(newOrder);
+
+  // Save to MongoDB orders collection via backend API
+  if (user) {
+    ordersApi.createOrder({
+      items: newOrder.items,
+      shippingAddress: {
+        street: formattedAddress.split(',')[0]?.trim() || formattedAddress,
+        city: defaultAddr?.city || 'Mumbai',
+        state: defaultAddr?.state || 'MH',
+        zipCode: defaultAddr?.zipCode || '400001',
+        country: defaultAddr?.country || 'India',
+        phone: user.phone
+      },
+      amountSubtotal: subtotal,
+      amountDiscount: discount,
+      amountShipping: shipping,
+      amountTotal: total,
+      paymentMethod: paymentMethod || 'razorpay',
+      paymentDetails: {
+        method: paymentMethod || 'razorpay',
+        razorpayPaymentId: paymentId
+      }
+    }).catch((err) => {
+      console.warn('Failed writing order to MongoDB:', err);
+    });
+  }
 
   return newOrder;
 }

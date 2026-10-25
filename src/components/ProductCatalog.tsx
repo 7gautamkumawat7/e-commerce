@@ -104,7 +104,7 @@ export const ProductCatalog: React.FC<ProductCatalogProps> = ({
       </div>
 
       {/* Dynamic Product Grid */}
-      <div className="product-grid" id="dynamic-product-grid">
+      <div className="product-grid" id="dynamic-product-grid" style={{ width: '100%' }}>
         {filteredProducts.length === 0 ? (
           <div className="empty-state">
             <div className="empty-icon-wrap">

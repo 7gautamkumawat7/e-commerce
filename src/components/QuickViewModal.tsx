@@ -77,7 +77,7 @@ export const QuickViewModal: React.FC<QuickViewModalProps> = ({ product, onClose
                 className="modal-img"
                 onError={(e) => {
                   const target = e.target as HTMLImageElement;
-                  target.src = 'ECOMMERCE_PRODUCT_IMAGES/train/ELECTRONICS/3361_ELECTR_train.jpeg';
+                  target.src = 'products/ECOMMERCE_PRODUCT_IMAGES/train/ELECTRONICS/3361_ELECTR_train.jpeg';
                 }}
               />
             </div>

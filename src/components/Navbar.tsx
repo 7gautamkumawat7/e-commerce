@@ -1,5 +1,5 @@
 import React, { useState, useRef, useEffect } from 'react';
-import type { Category } from '../types.js';
+import type { Category, ViewType } from '../types.js';
 import { useAuth } from '../context/AuthContext.js';
 import { useCart } from '../context/CartContext.js';
 import { useLocation } from '../context/LocationContext.js';
@@ -16,7 +16,9 @@ import {
   IconLogOut,
   IconTruck,
   IconChevronDown,
-  IconSparkles
+  IconSparkles,
+  IconBolt,
+  IconStar
 } from './Icons.js';
 
 interface NavbarProps {
@@ -24,8 +26,8 @@ interface NavbarProps {
   onSelectCategory: (category: Category) => void;
   onSearch: (query: string) => void;
   searchQuery: string;
-  onNavigate: (view: 'store' | 'account', tab?: 'profile' | 'orders' | 'wishlist' | 'addresses') => void;
-  currentView: 'store' | 'account';
+  onNavigate: (view: ViewType, tab?: 'profile' | 'orders' | 'wishlist' | 'addresses') => void;
+  currentView: ViewType;
 }
 
 export const Navbar: React.FC<NavbarProps> = ({
@@ -63,9 +65,8 @@ export const Navbar: React.FC<NavbarProps> = ({
   const handleSearchSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     onSearch(searchInput.trim().toLowerCase());
-    if (currentView !== 'store') {
-      onNavigate('store');
-    }
+    onNavigate('shop');
+    window.location.hash = `/shop?search=${encodeURIComponent(searchInput.trim().toLowerCase())}`;
   };
 
   const handleCategorySelectChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
@@ -78,9 +79,8 @@ export const Navbar: React.FC<NavbarProps> = ({
     else if (selected === 'pet supplies') cat = 'pets';
 
     onSelectCategory(cat);
-    if (currentView !== 'store') {
-      onNavigate('store');
-    }
+    onNavigate('shop');
+    window.location.hash = cat === 'all' ? '/shop' : `/category/${cat}`;
   };
 
   const categories: { id: Category; label: string }[] = [
@@ -105,14 +105,24 @@ export const Navbar: React.FC<NavbarProps> = ({
         </div>
         <div className="top-links">
           <a
-            href="javascript:void(0)"
-            onClick={() => {
-              if (currentView !== 'store') onNavigate('store');
-              const el = document.getElementById('product-catalog-section');
-              el?.scrollIntoView({ behavior: 'smooth' });
+            href="#/deals"
+            onClick={(e) => {
+              e.preventDefault();
+              onNavigate('deals');
+              window.location.hash = '/deals';
             }}
           >
             Today's Deals
+          </a>
+          <a
+            href="#/top-rated"
+            onClick={(e) => {
+              e.preventDefault();
+              onNavigate('top-rated');
+              window.location.hash = '/top-rated';
+            }}
+          >
+            Top Rated
           </a>
           <a
             href="javascript:void(0)"
@@ -136,7 +146,8 @@ export const Navbar: React.FC<NavbarProps> = ({
           href="#/"
           onClick={(e) => {
             e.preventDefault();
-            onNavigate('store');
+            onNavigate('home');
+            window.location.hash = '/';
           }}
         >
           <span className="brand-logo-symbol">
@@ -366,29 +377,92 @@ export const Navbar: React.FC<NavbarProps> = ({
         </div>
       </header>
 
-      {/* 3. Category Sub-Navigation */}
-      {currentView === 'store' && (
-        <nav className="category-nav" aria-label="Category Navigation">
+      {/* 3. Category & Section Sub-Navigation */}
+      {currentView !== 'account' && (
+        <nav className="category-nav" aria-label="Store Section Navigation">
           <div className="category-nav-links">
-            {categories.map((cat) => (
-              <button
-                key={cat.id}
-                className={`category-nav-item ${
-                  currentCategory === cat.id ? 'active-nav-link' : ''
-                }`}
-                onClick={() => {
-                  onSelectCategory(cat.id);
-                  const catalogEl = document.getElementById('product-catalog-section');
-                  catalogEl?.scrollIntoView({ behavior: 'smooth' });
-                }}
-              >
-                {cat.label}
-              </button>
-            ))}
+            {/* Home Tab */}
+            <button
+              type="button"
+              className={`category-nav-item ${currentView === 'home' ? 'active-nav-link' : ''}`}
+              onClick={() => {
+                onNavigate('home');
+                window.location.hash = '/';
+              }}
+            >
+              <IconHome size={13} style={{ marginRight: '5px' }} />
+              <span>Home</span>
+            </button>
+
+            {/* All Products Tab */}
+            <button
+              type="button"
+              className={`category-nav-item ${
+                (currentView === 'shop' || currentView === 'store') && currentCategory === 'all'
+                  ? 'active-nav-link'
+                  : ''
+              }`}
+              onClick={() => {
+                onSelectCategory('all');
+                onNavigate('shop');
+                window.location.hash = '/shop';
+              }}
+            >
+              <span>All Products</span>
+            </button>
+
+            {/* Individual Department Tabs */}
+            {categories
+              .filter((c) => c.id !== 'all')
+              .map((cat) => (
+                <button
+                  key={cat.id}
+                  type="button"
+                  className={`category-nav-item ${
+                    (currentView === 'shop' || currentView === 'store') && currentCategory === cat.id
+                      ? 'active-nav-link'
+                      : ''
+                  }`}
+                  onClick={() => {
+                    onSelectCategory(cat.id);
+                    onNavigate('shop');
+                    window.location.hash = `/category/${cat.id}`;
+                  }}
+                >
+                  {cat.label}
+                </button>
+              ))}
+
+            {/* Flash Deals Tab */}
+            <button
+              type="button"
+              className={`category-nav-item nav-deals-tab ${currentView === 'deals' ? 'active-nav-link' : ''}`}
+              onClick={() => {
+                onNavigate('deals');
+                window.location.hash = '/deals';
+              }}
+            >
+              <IconBolt size={13} style={{ marginRight: '4px' }} />
+              <span>Flash Deals</span>
+            </button>
+
+            {/* Top Rated Tab */}
+            <button
+              type="button"
+              className={`category-nav-item ${currentView === 'top-rated' ? 'active-nav-link' : ''}`}
+              onClick={() => {
+                onNavigate('top-rated');
+                window.location.hash = '/top-rated';
+              }}
+            >
+              <IconStar size={13} filled={true} style={{ marginRight: '4px' }} />
+              <span>Top Rated</span>
+            </button>
           </div>
+
           <span className="nav-promo-pill">
             <IconSparkles size={13} className="text-amber" />
-            <span>Summer Savings: Up to 45% Off Selected Items</span>
+            <span>Use code SUMMER20 for 20% off</span>
           </span>
         </nav>
       )}

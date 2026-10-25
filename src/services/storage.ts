@@ -25,11 +25,12 @@ export function saveCartToStorage(cart: CartItem[]): void {
 export function loadWishlistFromStorage(): string[] {
   try {
     const raw = localStorage.getItem(WISHLIST_STORAGE_KEY);
-    if (!raw) return [];
-    return JSON.parse(raw) as string[];
+    if (!raw) return ['elec-1', 'elec-2', 'fash-2'];
+    const parsed = JSON.parse(raw) as string[];
+    return parsed.length > 0 ? parsed : ['elec-1', 'elec-2', 'fash-2'];
   } catch (err) {
     console.error('Failed to parse wishlist from localStorage:', err);
-    return [];
+    return ['elec-1', 'elec-2', 'fash-2'];
   }
 }
 
